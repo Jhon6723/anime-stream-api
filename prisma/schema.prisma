@@ -1,0 +1,276 @@
+// AnimeStream Hub — Prisma schema
+// Modelo de datos canónico (ver anime-stream-specs/MODELO_DATOS.md)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MODERATOR
+  UPLOADER
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum AnimeStatus {
+  ONGOING
+  COMPLETED
+  UPCOMING
+}
+
+enum AnimeType {
+  TV
+  MOVIE
+  OVA
+  ONA
+  SPECIAL
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  WARNED
+  DISABLED
+}
+
+enum Provider {
+  DOODSTREAM
+  MIXDROP
+  STREAMTAPE
+}
+
+enum VideoSourceStatus {
+  UPLOADING
+  ENCODING
+  READY
+  ERROR
+  DELETED
+}
+
+enum UploadSourceType {
+  LOCAL
+  REMOTE_URL
+}
+
+enum UploadJobStatus {
+  QUEUED
+  UPLOADING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ModerationAction {
+  WARNING
+  DISABLE
+  RE_ENABLE
+  HARD_DELETE
+}
+
+enum AdProvider {
+  ADSENSE
+  CUSTOM
+}
+
+enum AdPlacement {
+  HEADER
+  SIDEBAR
+  IN_PLAYER
+  FOOTER
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  username     String     @unique
+  passwordHash String     @map("password_hash")
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+
+  approvedById  String? @map("approved_by")
+  approvedBy    User?   @relation("UserApprovals", fields: [approvedById], references: [id])
+  approvedUsers User[]  @relation("UserApprovals")
+
+  animesCreated  Anime[]         @relation("AnimeCreatedBy")
+  animesUpdated  Anime[]         @relation("AnimeUpdatedBy")
+  episodes       Episode[]       @relation("EpisodeCreatedBy")
+  moderationLogs ModerationLog[]
+  uploadJobs     UploadJob[]
+  adConfigs      AdConfig[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Anime {
+  id            String      @id @default(uuid())
+  title         String
+  slug          String      @unique
+  synopsis      String?
+  coverImage    String?     @map("cover_image")
+  bannerImage   String?     @map("banner_image")
+  status        AnimeStatus @default(ONGOING)
+  type          AnimeType   @default(TV)
+  genres        String[]
+  studios       String[]
+  totalEpisodes Int?        @map("total_episodes")
+  releaseDate   DateTime?   @map("release_date")
+  isEnabled     Boolean     @default(true) @map("is_enabled")
+
+  jikanId       Int?    @unique @map("jikan_id")
+  isTitleLocked Boolean @default(false) @map("is_title_locked")
+
+  createdById String? @map("created_by")
+  createdBy   User?   @relation("AnimeCreatedBy", fields: [createdById], references: [id])
+  updatedById String? @map("updated_by")
+  updatedBy   User?   @relation("AnimeUpdatedBy", fields: [updatedById], references: [id])
+
+  episodes       Episode[]
+  moderationLogs ModerationLog[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type])
+  @@map("animes")
+}
+
+model Episode {
+  id               String           @id @default(uuid())
+  animeId          String           @map("anime_id")
+  anime            Anime            @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  episodeNumber    Int              @map("episode_number")
+  title            String?
+  description      String?
+  thumbnailUrl     String?          @map("thumbnail_url")
+  duration         Int?
+  isEnabled        Boolean          @default(true) @map("is_enabled")
+  moderationStatus ModerationStatus @default(PENDING) @map("moderation_status")
+
+  jikanEpisodeId Int?      @map("jikan_episode_id")
+  isFiller       Boolean   @default(false) @map("is_filler")
+  airedDate      DateTime? @map("aired_date")
+
+  createdById String? @map("created_by")
+  createdBy   User?   @relation("EpisodeCreatedBy", fields: [createdById], references: [id])
+
+  videoSources   VideoSource[]
+  uploadJobs     UploadJob[]
+  moderationLogs ModerationLog[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([animeId, episodeNumber])
+  @@index([moderationStatus])
+  @@map("episodes")
+}
+
+model VideoSource {
+  id                String            @id @default(uuid())
+  episodeId         String            @map("episode_id")
+  episode           Episode           @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  provider          Provider
+  providerFileId    String?           @map("provider_file_id")
+  embedUrl          String?           @map("embed_url")
+  downloadUrl       String?           @map("download_url")
+  status            VideoSourceStatus @default(UPLOADING)
+  viewsCount        BigInt            @default(0) @map("views_count")
+  earningsEstimated Decimal           @default(0) @map("earnings_estimated") @db.Decimal(12, 4)
+  isActive          Boolean           @default(true) @map("is_active")
+
+  uploadJobs UploadJob[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([episodeId, provider])
+  @@index([status])
+  @@map("video_sources")
+}
+
+model ModerationLog {
+  id          String           @id @default(uuid())
+  animeId     String?          @map("anime_id")
+  anime       Anime?           @relation(fields: [animeId], references: [id])
+  episodeId   String?          @map("episode_id")
+  episode     Episode?         @relation(fields: [episodeId], references: [id])
+  moderatorId String           @map("moderator_id")
+  moderator   User             @relation(fields: [moderatorId], references: [id])
+  action      ModerationAction
+  reason      String
+  notes       String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([animeId])
+  @@index([episodeId])
+  @@map("moderation_logs")
+}
+
+model UploadJob {
+  id            String           @id @default(uuid())
+  episodeId     String           @map("episode_id")
+  episode       Episode          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  videoSourceId String?          @map("video_source_id")
+  videoSource   VideoSource?     @relation(fields: [videoSourceId], references: [id])
+  provider      Provider
+  sourceType    UploadSourceType @map("source_type")
+  sourceUrl     String?          @map("source_url")
+  status        UploadJobStatus  @default(QUEUED)
+  retryCount    Int              @default(0) @map("retry_count")
+  errorMessage  String?          @map("error_message")
+  initiatedById String           @map("initiated_by")
+  initiatedBy   User             @relation(fields: [initiatedById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("upload_jobs")
+}
+
+model AdConfig {
+  id          String      @id @default(uuid())
+  provider    AdProvider
+  adCode      String      @map("ad_code")
+  placement   AdPlacement
+  isActive    Boolean     @default(true) @map("is_active")
+  updatedById String?     @map("updated_by")
+  updatedBy   User?       @relation(fields: [updatedById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([placement])
+  @@map("ad_configs")
+}
+
+model ProviderAccount {
+  id       String   @id @default(uuid())
+  provider Provider
+  label    String
+  apiKey   String   @map("api_key")
+  isActive Boolean  @default(true) @map("is_active")
+  priority Int      @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([provider, isActive])
+  @@map("provider_accounts")
+}
