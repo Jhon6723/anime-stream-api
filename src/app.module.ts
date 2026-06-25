@@ -4,21 +4,22 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import configuration from './config/configuration';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { PrismaModule } from './prisma/prisma.module';
+import configuration from './config/configuration';
 import { HealthController } from './health/health.controller';
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { AnimeModule } from './modules/anime/anime.module';
-import { JikanModule } from './modules/jikan/jikan.module';
-import { ProvidersModule } from './modules/providers/providers.module';
-import { UploadModule } from './modules/upload/upload.module';
-import { ModerationModule } from './modules/moderation/moderation.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AdsModule } from './modules/ads/ads.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AnimeModule } from './modules/anime/anime.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JikanModule } from './modules/jikan/jikan.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
+import { ProvidersModule } from './modules/providers/providers.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { UsersModule } from './modules/users/users.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 import { WebsocketModule } from './websocket/websocket.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,11 +39,13 @@ import { WebsocketModule } from './websocket/websocket.module';
       }),
     }),
     PrismaModule,
+    RedisModule,
     AuthModule,
     UsersModule,
     AnimeModule,
     JikanModule,
     ProvidersModule,
+    ReportsModule,
     UploadModule,
     ModerationModule,
     AnalyticsModule,
