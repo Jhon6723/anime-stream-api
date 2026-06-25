@@ -30,6 +30,10 @@ npm run prisma:seed             # crea usuario admin inicial
 npm run start:dev               # API en http://localhost:4000/api
 ```
 
+> **Seed admin:** por defecto crea `admin@animestream.local` / `admin12345`.
+> Puedes overridear con env vars:
+> `SEED_ADMIN_EMAIL=tu@email.com SEED_ADMIN_PASSWORD=tu_password npm run prisma:seed`
+
 Swagger: http://localhost:4000/api/docs
 
 ## Scripts

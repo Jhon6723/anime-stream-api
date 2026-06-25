@@ -90,6 +90,12 @@ enum AdPlacement {
   FOOTER
 }
 
+enum UploaderRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
@@ -108,6 +114,8 @@ model User {
   moderationLogs ModerationLog[]
   uploadJobs     UploadJob[]
   adConfigs      AdConfig[]
+  uploaderRequests       UploaderRequest[] @relation("UploaderRequestUser")
+  reviewedUploaderRequests UploaderRequest[] @relation("UploaderRequestReviewer")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -194,6 +202,7 @@ model VideoSource {
   isActive          Boolean           @default(true) @map("is_active")
 
   uploadJobs UploadJob[]
+  brokenLinkReports BrokenLinkReport[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -273,4 +282,34 @@ model ProviderAccount {
 
   @@index([provider, isActive])
   @@map("provider_accounts")
+}
+
+model UploaderRequest {
+  id            String               @id @default(uuid())
+  userId        String               @map("user_id")
+  user          User                 @relation("UploaderRequestUser", fields: [userId], references: [id])
+  status        UploaderRequestStatus @default(PENDING)
+  reviewedById  String?              @map("reviewed_by")
+  reviewedBy    User?                @relation("UploaderRequestReviewer", fields: [reviewedById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([userId])
+  @@map("uploader_requests")
+}
+
+model BrokenLinkReport {
+  id            String       @id @default(uuid())
+  videoSourceId String       @map("video_source_id")
+  videoSource   VideoSource  @relation(fields: [videoSourceId], references: [id], onDelete: Cascade)
+  ipAddress     String       @map("ip_address")
+  userAgent     String?      @map("user_agent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([videoSourceId])
+  @@index([ipAddress])
+  @@map("broken_link_reports")
 }
