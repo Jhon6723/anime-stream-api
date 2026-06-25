@@ -1,0 +1,10 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+@accessToken = 
+
+### Active ads
+GET {{baseUrl}}/ads/active
+
+### List all ads
+GET {{baseUrl}}/ads
+Authorization: Bearer {{accessToken}}

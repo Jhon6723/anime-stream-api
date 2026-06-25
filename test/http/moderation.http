@@ -1,0 +1,11 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+@accessToken = 
+
+### Moderation queue
+GET {{baseUrl}}/moderation/queue
+Authorization: Bearer {{accessToken}}
+
+### Moderation logs
+GET {{baseUrl}}/moderation/logs
+Authorization: Bearer {{accessToken}}

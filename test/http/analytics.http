@@ -1,0 +1,7 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+@accessToken = 
+
+### Overview
+GET {{baseUrl}}/analytics/overview
+Authorization: Bearer {{accessToken}}

@@ -1,0 +1,27 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+
+### ─── Home (Public) ───
+
+### Home landing data
+GET {{baseUrl}}/home
+
+### ─── Anime (Public) ───
+
+### Catalog
+GET {{baseUrl}}/anime
+
+### Catalog with search
+GET {{baseUrl}}/anime?q=naruto&page=1&pageSize=10
+
+### Catalog with filters
+GET {{baseUrl}}/anime?genre=Action&status=ONGOING&type=TV&sort=recent
+
+### Catalog sorted by most viewed
+GET {{baseUrl}}/anime?sort=most_viewed&page=1&pageSize=24
+
+### Anime by slug
+GET {{baseUrl}}/anime/naruto
+
+### Episode by slug and number
+GET {{baseUrl}}/anime/naruto/episodes/1

@@ -1,0 +1,11 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+@accessToken = 
+@refreshToken = 
+@userToken = 
+@userRefreshToken = 
+@userId = 
+@requestId = 
+
+### Health
+GET {{baseUrl}}/health

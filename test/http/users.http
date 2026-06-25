@@ -1,0 +1,58 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+@accessToken = 
+@refreshToken = 
+@userToken = 
+@userRefreshToken = 
+@userId = 
+@requestId = 
+
+### ─── Users (Admin) ───
+
+### List users
+GET {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+
+### Get user by ID
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+### Change user role
+PATCH {{baseUrl}}/users/{{userId}}/role
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "role": "MODERATOR"
+}
+
+### Change user status
+PATCH {{baseUrl}}/users/{{userId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "SUSPENDED"
+}
+
+### ─── Uploader Requests ───
+
+### Request uploader status (any logged-in user)
+POST {{baseUrl}}/users/me/uploader-request
+Authorization: Bearer {{userToken}}
+
+### List pending uploader requests (admin)
+GET {{baseUrl}}/users/uploader-requests
+Authorization: Bearer {{accessToken}}
+
+### Direct approve uploader by user ID
+POST {{baseUrl}}/users/{{userId}}/approve-uploader
+Authorization: Bearer {{accessToken}}
+
+### Approve uploader request (admin)
+POST {{baseUrl}}/users/uploader-requests/{{requestId}}/approve
+Authorization: Bearer {{accessToken}}
+
+### Reject uploader request (admin)
+POST {{baseUrl}}/users/uploader-requests/{{requestId}}/reject
+Authorization: Bearer {{accessToken}}
