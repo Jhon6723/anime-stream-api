@@ -8,22 +8,12 @@ Sistema de autenticación basado en JWT con access token y refresh token.
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| POST | `/api/auth/register` | Público | Registrar nuevo usuario (role: USER) |
 | POST | `/api/auth/login` | Público | Iniciar sesión, retorna access + refresh token |
 | POST | `/api/auth/refresh` | Público | Renovar access token usando refresh token |
 | POST | `/api/auth/logout` | JWT | Invalidar refresh token |
 | GET | `/api/auth/me` | JWT | Obtener datos del usuario autenticado |
 
 ## DTOs
-
-### RegisterDto
-```typescript
-{
-  email: string;
-  username: string;
-  password: string;
-}
-```
 
 ### LoginDto
 ```typescript
@@ -42,11 +32,10 @@ Sistema de autenticación basado en JWT con access token y refresh token.
 
 ## Flujo de Autenticación
 
-1. **Registro**: `POST /auth/register` → crea usuario con role `USER` y status `ACTIVE`
-2. **Login**: `POST /auth/login` → retorna `{ accessToken, refreshToken, user }`
-3. **Refresh**: `POST /auth/refresh` → nuevo `accessToken` desde `refreshToken` válido
-4. **Logout**: `POST /auth/logout` → invalida el `refreshToken` en DB/Redis
-5. **Me**: `GET /auth/me` → retorna datos del usuario desde el JWT
+1. **Login**: `POST /auth/login` → retorna `{ accessToken, refreshToken, user }`
+2. **Refresh**: `POST /auth/refresh` → nuevo `accessToken` desde `refreshToken` válido
+3. **Logout**: `POST /auth/logout` → invalida el `refreshToken` en DB/Redis
+4. **Me**: `GET /auth/me` → retorna datos del usuario desde el JWT
 
 ## Tokens JWT
 
@@ -67,9 +56,8 @@ Sistema de autenticación basado en JWT con access token y refresh token.
 | Archivo | Descripción |
 |---------|-------------|
 | `auth.controller.ts` | Endpoints REST |
-| `auth.service.ts` | Lógica de registro, login, refresh, logout |
+| `auth.service.ts` | Lógica de login, refresh, logout |
 | `auth.module.ts` | Configuración del módulo |
-| `dto/register.dto.ts` | DTO de registro |
 | `dto/login.dto.ts` | DTO de login |
 | `dto/refresh-token.dto.ts` | DTO de refresh |
 | `strategies/jwt.strategy.ts` | Estrategia JWT para Passport |

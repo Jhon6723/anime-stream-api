@@ -7,7 +7,7 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 ## Enums
 
 ### UserRole
-`ADMIN` | `MODERATOR` | `UPLOADER` | `USER`
+`ADMIN` | `MODERATOR` | `UPLOADER`
 
 ### UserStatus
 `ACTIVE` | `SUSPENDED` | `BANNED`
@@ -30,6 +30,9 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 ### VideoSourceStatus
 `UPLOADING` | `ENCODING` | `READY` | `ERROR` | `DELETED`
 
+### SubtitleLanguage
+`EN` | `ES`
+
 ### UploadSourceType
 `LOCAL` | `REMOTE_URL`
 
@@ -43,7 +46,7 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 `HEADER` | `SIDEBAR` | `IN_PLAYER` | `FOOTER`
 
 ### UploaderRequestStatus
-`PENDING` | `APPROVED` | `REJECTED`
+~~Eliminado~~
 
 ### SystemConfigCategory
 `SEO` | `MODERATION` | `GENERAL`
@@ -116,6 +119,7 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 | id | String (UUID) | PK |
 | episodeId | String | FK → Episode (Cascade) |
 | provider | Provider | |
+| language | SubtitleLanguage | Default: EN |
 | providerFileId | String? | ID en el provider |
 | embedUrl | String? | |
 | downloadUrl | String? | |
@@ -125,7 +129,7 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 | createdAt | DateTime | Auto |
 | updatedAt | DateTime | Auto |
 
-**Unique**: `(episodeId, provider)`
+**Unique**: `(episodeId, provider, language)`
 **Relaciones**: `UploadJob[]`, `BrokenLinkReport[]`
 
 ### ModerationLog
@@ -147,6 +151,7 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 | episodeId | String | FK → Episode (Cascade) |
 | videoSourceId | String? | FK → VideoSource |
 | provider | Provider | |
+| language | SubtitleLanguage | Default: EN |
 | sourceType | UploadSourceType | |
 | sourceUrl | String? | |
 | status | UploadJobStatus | Default: QUEUED |
@@ -181,14 +186,7 @@ Base de datos: **PostgreSQL**. ORM: **Prisma 6**.
 | updatedAt | DateTime | Auto |
 
 ### UploaderRequest
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | String (UUID) | PK |
-| userId | String | FK → User |
-| status | UploaderRequestStatus | Default: PENDING |
-| reviewedById | String? | FK → User |
-| createdAt | DateTime | Auto |
-| updatedAt | DateTime | Auto |
+~~Eliminado~~ — El admin asigna roles directamente con `PATCH /users/:id/role`.
 
 ### BrokenLinkReport
 | Campo | Tipo | Notas |

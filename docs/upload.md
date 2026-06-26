@@ -25,6 +25,7 @@ Sistema de upload de videos a múltiples proveedores. Soporta upload local, stre
   episodeId: string;
   provider: "DOODSTREAM" | "MIXDROP" | "STREAMTAPE";
   sourceType: "LOCAL" | "REMOTE_URL";
+  language: "EN" | "ES";  // requerido
   sourceUrl?: string;  // requerido si sourceType = REMOTE_URL
 }
 ```
@@ -34,24 +35,43 @@ Sistema de upload de videos a múltiples proveedores. Soporta upload local, stre
 {
   episodeId: string;
   provider: "DOODSTREAM" | "MIXDROP" | "STREAMTAPE";
-  fileName: string;
+  language: "EN" | "ES";  // requerido
 }
 ```
 
 ### ConfirmUploadDto
 ```typescript
 {
-  videoSourceId: string;
+  episodeId: string;
+  provider: "DOODSTREAM" | "MIXDROP" | "STREAMTAPE";
+  language: "EN" | "ES";  // requerido
   providerFileId: string;
+  embedUrl: string;
+  downloadUrl?: string;
 }
 ```
 
 ### BulkUploadDto
 ```typescript
 {
-  uploads: CreateUploadDto[];
+  provider: "DOODSTREAM" | "MIXDROP" | "STREAMTAPE";
+  language: "EN" | "ES";  // requerido (default para todos los items)
+  items: {
+    episodeId: string;
+    url: string;
+    language?: "EN" | "ES";  // opcional, usa el del parent si se omite
+  }[];
 }
 ```
+
+## Multi-Subtitle
+
+Cada `VideoSource` tiene un campo `language` (`EN` | `ES`). Esto permite tener múltiples fuentes para el mismo episodio y provider en diferentes idiomas.
+
+- El unique constraint es `(episodeId, provider, language)`.
+- `checkDuplicate` filtra por `language`, permitiendo duplicados solo si el idioma es diferente.
+- CSV upload recibe `language` como query param: `POST /uploads/csv?provider=DOODSTREAM&language=EN`.
+- Stream upload recibe `language` como form field en el multipart.
 
 ## Flujo de Upload
 
