@@ -1,7 +1,293 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = 
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YTBhMmZhZS1mNWIyLTQ2NTEtODBlZi0xODQzNzIxNTdlZDciLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJyb2xlIjoiVVBMT0FERVIiLCJpYXQiOjE3ODI0NDIwOTEsImV4cCI6MTc4MjQ0Mjk5MX0.RmMeDDrM9SNU_Um1Cu8su4NT_4knnhgISJxUCxajk4w
 
-### List upload jobs
-GET {{baseUrl}}/upload/jobs
+@episodeId = 678b7576-a345-4a71-abc0-acc360501d06
+
+### ═══════════════════════════════════════════════════
+### REMOTE UPLOAD — POST /uploads (por provider)
+### ═══════════════════════════════════════════════════
+### Remote upload — DoodStream
+POST {{baseUrl}}/uploads
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "DOODSTREAM",
+  "sourceType": "REMOTE_URL",
+  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/N/Naruto/Season%201/Episode%204//04%20Pass%20or%20Fail%20Survival%20Test.mp4"
+}
+
+### Remote upload — MixDrop
+POST {{baseUrl}}/uploads
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "MIXDROP",
+  "sourceType": "REMOTE_URL",
+  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/N/Naruto/Season%201/Episode%204//04%20Pass%20or%20Fail%20Survival%20Test.mp4"
+}
+
+### Remote upload — Streamtape
+POST {{baseUrl}}/uploads
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "STREAMTAPE",
+  "sourceType": "REMOTE_URL",
+  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/N/Naruto/Season%201/Episode%204//04%20Pass%20or%20Fail%20Survival%20Test.mp4"
+}
+
+### ═══════════════════════════════════════════════════
+### STREAM UPLOAD — POST /uploads/stream (por provider)
+### El server recibe el archivo en memoria y lo forwarda al provider.
+### La API key nunca llega al cliente.
+### ═══════════════════════════════════════════════════
+
+### Stream upload — DoodStream
+POST {{baseUrl}}/uploads/stream
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="episodeId"
+
+{{episodeId}}
+--boundary
+Content-Disposition: form-data; name="provider"
+
+DOODSTREAM
+--boundary
+Content-Disposition: form-data; name="file"; filename="episode-01.mp4"
+Content-Type: video/mp4
+
+< /path/to/local/video.mp4
+--boundary--
+
+### Stream upload — MixDrop
+POST {{baseUrl}}/uploads/stream
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="episodeId"
+
+{{episodeId}}
+--boundary
+Content-Disposition: form-data; name="provider"
+
+MIXDROP
+--boundary
+Content-Disposition: form-data; name="file"; filename="episode-01.mp4"
+Content-Type: video/mp4
+
+< /path/to/local/video.mp4
+--boundary--
+
+### Stream upload — Streamtape
+POST {{baseUrl}}/uploads/stream
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="episodeId"
+
+{{episodeId}}
+--boundary
+Content-Disposition: form-data; name="provider"
+
+STREAMTAPE
+--boundary
+Content-Disposition: form-data; name="file"; filename="episode-01.mp4"
+Content-Type: video/mp4
+
+< /path/to/local/video.mp4
+--boundary--
+
+### ═══════════════════════════════════════════════════
+### PRESIGN UPLOAD — POST /uploads/presign
+### Solo Streamtape soporta presign seguro (sin secrets).
+### DoodStream y MixDrop retornan error (usar /uploads/stream).
+### ═══════════════════════════════════════════════════
+
+### Presign upload — Streamtape (seguro, sin secrets)
+POST {{baseUrl}}/uploads/presign
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "STREAMTAPE"
+}
+
+### Presign upload — DoodStream (retorna error, usar /uploads/stream)
+POST {{baseUrl}}/uploads/presign
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "DOODSTREAM"
+}
+
+### Presign upload — MixDrop (retorna error, no soporta presign)
+POST {{baseUrl}}/uploads/presign
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "MIXDROP"
+}
+
+### ═══════════════════════════════════════════════════
+### CONFIRM UPLOAD — POST /uploads/confirm (por provider)
+### Después de subir directo al provider via presign, registrar el resultado.
+### ═══════════════════════════════════════════════════
+
+### Confirm upload — DoodStream
+POST {{baseUrl}}/uploads/confirm
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "DOODSTREAM",
+  "providerFileId": "FILECODE_FROM_PROVIDER",
+  "embedUrl": "https://dood.to/e/FILECODE_FROM_PROVIDER"
+}
+
+### Confirm upload — MixDrop
+POST {{baseUrl}}/uploads/confirm
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "MIXDROP",
+  "providerFileId": "FILEREF_FROM_PROVIDER",
+  "embedUrl": "https://mixdrop.co/e/FILEREF_FROM_PROVIDER"
+}
+
+### Confirm upload — Streamtape
+POST {{baseUrl}}/uploads/confirm
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "episodeId": "{{episodeId}}",
+  "provider": "STREAMTAPE",
+  "providerFileId": "FILEID_FROM_PROVIDER",
+  "embedUrl": "https://streamtape.com/e/FILEID_FROM_PROVIDER"
+}
+
+### ═══════════════════════════════════════════════════
+### BULK UPLOAD — POST /uploads/bulk (por provider)
+### ═══════════════════════════════════════════════════
+
+### Bulk upload — DoodStream
+POST {{baseUrl}}/uploads/bulk
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "provider": "DOODSTREAM",
+  "items": [
+    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_3", "url": "https://example.com/ep3.mp4" }
+  ]
+}
+
+### Bulk upload — MixDrop
+POST {{baseUrl}}/uploads/bulk
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "provider": "MIXDROP",
+  "items": [
+    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4" }
+  ]
+}
+
+### Bulk upload — Streamtape
+POST {{baseUrl}}/uploads/bulk
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "provider": "STREAMTAPE",
+  "items": [
+    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4" }
+  ]
+}
+
+### ═══════════════════════════════════════════════════
+### CSV UPLOAD — POST /uploads/csv (por provider)
+### ═══════════════════════════════════════════════════
+
+### CSV upload — DoodStream
+POST {{baseUrl}}/uploads/csv?provider=DOODSTREAM
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="uploads.csv"
+Content-Type: text/csv
+
+anime_slug,episode_number,url
+naruto,1,https://example.com/naruto-01.mp4
+naruto,2,https://example.com/naruto-02.mp4
+naruto,3,https://example.com/naruto-03.mp4
+
+--boundary--
+
+### CSV upload — MixDrop
+POST {{baseUrl}}/uploads/csv?provider=MIXDROP
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="uploads.csv"
+Content-Type: text/csv
+
+anime_slug,episode_number,url
+naruto,1,https://example.com/naruto-01.mp4
+naruto,2,https://example.com/naruto-02.mp4
+
+--boundary--
+
+### CSV upload — Streamtape
+POST {{baseUrl}}/uploads/csv?provider=STREAMTAPE
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="uploads.csv"
+Content-Type: text/csv
+
+anime_slug,episode_number,url
+naruto,1,https://example.com/naruto-01.mp4
+naruto,2,https://example.com/naruto-02.mp4
+
+--boundary--
+
+### ═══════════════════════════════════════════════════
+### JOBS — Listar y consultar estado
+### ═══════════════════════════════════════════════════
+
+### List upload jobs (uploader sees own, admin sees all)
+GET {{baseUrl}}/uploads/jobs
+Authorization: Bearer {{accessToken}}
+
+### Get specific upload job
+GET {{baseUrl}}/uploads/jobs/REPLACE_WITH_JOB_UUID
 Authorization: Bearer {{accessToken}}

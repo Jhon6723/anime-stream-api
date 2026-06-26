@@ -1,11 +1,70 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = 
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzczNWMwNS1kYzFjLTRkMDAtODhlMi01ZjRkZjZhNTQ0NmEiLCJlbWFpbCI6Im1vZGVyYXRvckBleGFtcGxlLmNvbSIsInJvbGUiOiJNT0RFUkFUT1IiLCJpYXQiOjE3ODI0NDA3NjAsImV4cCI6MTc4MjQ0MTY2MH0.Iu5SsLYjL2lkaeXRfDfsntTmTmNm8J4Y3HNAcGXP1pw
 
-### Moderation queue
+@episodeId = fafdf7cb-be1e-4a4a-a16b-8a35662fc7cc
+
+### ═══════════════════════════════════════════════════
+### MODERATION — Cola y acciones (ADMIN / MODERATOR)
+### ═══════════════════════════════════════════════════
+
+### Get moderation queue (PENDING episodes)
 GET {{baseUrl}}/moderation/queue
 Authorization: Bearer {{accessToken}}
 
-### Moderation logs
+### Get moderation logs (all)
 GET {{baseUrl}}/moderation/logs
 Authorization: Bearer {{accessToken}}
+
+### Get moderation logs for a specific episode
+GET {{baseUrl}}/moderation/logs?episodeId={{episodeId}}
+Authorization: Bearer {{accessToken}}
+
+### ─── Acciones de moderación ───
+
+### Approve episode
+POST {{baseUrl}}/moderation/episodes/{{episodeId}}/approve
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Video correcto, corresponde al episodio"
+}
+
+### Approve episode with notes
+POST {{baseUrl}}/moderation/episodes/{{episodeId}}/approve
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Video correcto",
+  "notes": "Calidad 1080p, sin watermarks"
+}
+
+### Warn episode
+POST {{baseUrl}}/moderation/episodes/{{episodeId}}/warn
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Video no corresponde al episodio",
+  "notes": "Minuto 5:15 aparece otro anime"
+}
+
+### Disable episode (soft delete)
+POST {{baseUrl}}/moderation/episodes/{{episodeId}}/disable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Contenido inapropiado"
+}
+
+### Re-enable episode
+POST {{baseUrl}}/moderation/episodes/{{episodeId}}/enable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Revisado nuevamente, contenido correcto"
+}

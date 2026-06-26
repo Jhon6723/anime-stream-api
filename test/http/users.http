@@ -1,6 +1,6 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = 
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNDM2ODY2LCJleHAiOjE3ODI0Mzc3NjZ9.Voufmd9wYsN7O_VCJl7Lr6-lZC4QsLkRgygyAg3SU7Y
 @refreshToken = 
 @userToken = 
 @userRefreshToken = 
@@ -12,6 +12,30 @@
 ### List users
 GET {{baseUrl}}/users
 Authorization: Bearer {{accessToken}}
+
+### Create moderator (admin creates account with email + password)
+POST {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "moderator@example.com",
+  "username": "moderator1",
+  "password": "Moderator123!",
+  "role": "MODERATOR"
+}
+
+### Create uploader directly (admin creates account)
+POST {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "uploader@example.com",
+  "username": "uploader1",
+  "password": "Uploader123!",
+  "role": "UPLOADER"
+}
 
 ### Get user by ID
 GET {{baseUrl}}/users/{{userId}}

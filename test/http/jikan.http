@@ -1,7 +1,7 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
 @accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YTBhMmZhZS1mNWIyLTQ2NTEtODBlZi0xODQzNzIxNTdlZDciLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJyb2xlIjoiVVBMT0FERVIiLCJpYXQiOjE3ODIzNTg1NzksImV4cCI6MTc4MjM1OTQ3OX0._iLyswhcSQ8k6uNQUQbVvXVmLQcl0RXWk7Sl7l5HFoI
-@userToken = 
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNDAwNzU1LCJleHAiOjE3ODI0MDE2NTV9.SQwIjZzdyXPbQZ3mFUNYCHsu--aEESLc4XUeg6k06lM
 
 ### ─── Jikan (Uploader/Admin/Moderator) ───
 

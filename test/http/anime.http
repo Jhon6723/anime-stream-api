@@ -1,5 +1,6 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YTBhMmZhZS1mNWIyLTQ2NTEtODBlZi0xODQzNzIxNTdlZDciLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJyb2xlIjoiVVBMT0FERVIiLCJpYXQiOjE3ODI0NDE0MjcsImV4cCI6MTc4MjQ0MjMyN30.NEmG7M2y9Lpt2tmxru1dZEvuVZbL9damoXOe6IY22Fc
 
 ### ─── Home (Public) ───
 
@@ -23,5 +24,21 @@ GET {{baseUrl}}/anime?sort=most_viewed&page=1&pageSize=24
 ### Anime by slug
 GET {{baseUrl}}/anime/naruto
 
+### ─── Episodes for Upload (UPLOADER, ADMIN) ───
+
+### List episodes with upload status (paginated, 50 per page)
+GET {{baseUrl}}/anime/naruto/episodes?page=1&pageSize=50
+Authorization: Bearer {{accessToken}}
+
+### List episodes page 2
+GET {{baseUrl}}/anime/naruto/episodes?page=2&pageSize=50
+Authorization: Bearer {{accessToken}}
+
+### List episodes page 3 (for long anime like One Piece)
+GET {{baseUrl}}/anime/one-piece/episodes?page=1&pageSize=100
+Authorization: Bearer {{accessToken}}
+
+### ─── Episode detail (Public) ───
+
 ### Episode by slug and number
-GET {{baseUrl}}/anime/naruto/episodes/1
+GET {{baseUrl}}/anime/naruto/episodes/2

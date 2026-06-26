@@ -17,6 +17,7 @@ yarn-error.log*
 # Tests / coverage
 /coverage
 /.nyc_output
+/test/http
 
 # IDEs and editors
 /.idea
