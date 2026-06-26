@@ -14,12 +14,14 @@ export class VideoSourceSyncService {
     private readonly accountService: ProviderAccountService,
   ) {}
 
-  async syncPendingSources(videoSources: Array<{
-    id: string;
-    provider: Provider;
-    status: VideoSourceStatus;
-    remoteTrackingId: string | null;
-  }>): Promise<void> {
+  async syncPendingSources(
+    videoSources: Array<{
+      id: string;
+      provider: Provider;
+      status: VideoSourceStatus;
+      remoteTrackingId: string | null;
+    }>,
+  ): Promise<void> {
     const pending = videoSources.filter(
       (vs) => vs.status === 'UPLOADING' && vs.remoteTrackingId,
     );
@@ -27,7 +29,9 @@ export class VideoSourceSyncService {
     if (pending.length === 0) return;
 
     await Promise.allSettled(
-      pending.map((vs) => this.syncOne(vs.id, vs.provider, vs.remoteTrackingId!)),
+      pending.map((vs) =>
+        this.syncOne(vs.id, vs.provider, vs.remoteTrackingId!),
+      ),
     );
   }
 
@@ -51,16 +55,22 @@ export class VideoSourceSyncService {
             status: 'ENCODING',
           },
         });
-        this.logger.log(`Synced videoSource ${videoSourceId}: ${provider} -> ENCODING (${result.providerFileId})`);
+        this.logger.log(
+          `Synced videoSource ${videoSourceId}: ${provider} -> ENCODING (${result.providerFileId})`,
+        );
       } else if (result.status === 'FAILED') {
         await this.prisma.videoSource.update({
           where: { id: videoSourceId },
           data: { status: 'ERROR' },
         });
-        this.logger.warn(`Synced videoSource ${videoSourceId}: ${provider} -> FAILED`);
+        this.logger.warn(
+          `Synced videoSource ${videoSourceId}: ${provider} -> FAILED`,
+        );
       }
     } catch (err) {
-      this.logger.debug(`Sync skipped for ${videoSourceId}: ${err instanceof Error ? err.message : 'unknown'}`);
+      this.logger.debug(
+        `Sync skipped for ${videoSourceId}: ${err instanceof Error ? err.message : 'unknown'}`,
+      );
     }
   }
 }
