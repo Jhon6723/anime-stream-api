@@ -42,3 +42,5 @@ prisma/*.db
 # Temp
 /tmp
 /temp
+
+.devin
