@@ -52,11 +52,11 @@ export class VideoSourceSyncService {
             providerFileId: result.providerFileId,
             embedUrl: result.embedUrl,
             downloadUrl: result.downloadUrl,
-            status: 'ENCODING',
+            status: 'READY',
           },
         });
         this.logger.log(
-          `Synced videoSource ${videoSourceId}: ${provider} -> ENCODING (${result.providerFileId})`,
+          `Synced videoSource ${videoSourceId}: ${provider} -> READY (${result.providerFileId})`,
         );
       } else if (result.status === 'FAILED') {
         await this.prisma.videoSource.update({

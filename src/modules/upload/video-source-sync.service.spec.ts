@@ -87,7 +87,7 @@ describe('VideoSourceSyncService', () => {
         data: expect.objectContaining({
           providerFileId: 'file-abc',
           embedUrl: 'https://streamtape.com/e/file-abc',
-          status: 'ENCODING',
+          status: 'READY',
         }),
       });
     });
