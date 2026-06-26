@@ -27,7 +27,12 @@ interface MixdropUploadResponse {
 
 interface MixdropRemoteUploadResponse {
   success: boolean;
-  result?: { id?: string | number; fileref?: string; url?: string; embedurl?: string };
+  result?: {
+    id?: string | number;
+    fileref?: string;
+    url?: string;
+    embedurl?: string;
+  };
 }
 
 interface MixdropRemoteStatusResponse {
