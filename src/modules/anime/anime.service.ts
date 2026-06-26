@@ -136,6 +136,7 @@ export class AnimeService {
             select: {
               id: true,
               provider: true,
+              language: true,
               status: true,
               remoteTrackingId: true,
             },
@@ -163,6 +164,7 @@ export class AnimeService {
           select: {
             id: true,
             provider: true,
+            language: true,
             status: true,
           },
         },
@@ -216,6 +218,7 @@ export class AnimeService {
           select: {
             id: true,
             provider: true,
+            language: true,
             embedUrl: true,
           },
           orderBy: { provider: 'asc' },

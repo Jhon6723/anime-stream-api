@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Provider, UploadSourceType } from '@prisma/client';
+import { Provider, SubtitleLanguage, UploadSourceType } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UPLOAD_QUEUE, UploadJobData } from '../../queue/queue.constants';
@@ -46,12 +46,18 @@ export class UploadService {
       );
     }
 
-    await this.checkDuplicate(dto.episodeId, dto.provider, dto.sourceUrl);
+    await this.checkDuplicate(
+      dto.episodeId,
+      dto.provider,
+      dto.language,
+      dto.sourceUrl,
+    );
 
     const job = await this.prisma.uploadJob.create({
       data: {
         episodeId: dto.episodeId,
         provider: dto.provider,
+        language: dto.language,
         sourceType: dto.sourceType,
         sourceUrl: dto.sourceUrl,
         status: 'QUEUED',
@@ -78,6 +84,7 @@ export class UploadService {
         where: {
           episodeId: item.episodeId,
           provider: dto.provider,
+          language: item.language ?? dto.language,
           status: { not: 'DELETED' },
         },
       });
@@ -89,6 +96,7 @@ export class UploadService {
         data: {
           episodeId: item.episodeId,
           provider: dto.provider,
+          language: item.language ?? dto.language,
           sourceType: UploadSourceType.REMOTE_URL,
           sourceUrl: item.url,
           status: 'QUEUED',
@@ -106,6 +114,7 @@ export class UploadService {
   async createCsvUpload(
     csvContent: string,
     provider: Provider,
+    language: SubtitleLanguage,
     userId: string,
   ): Promise<CsvUploadResult> {
     const { parse } = await import('csv-parse/sync');
@@ -160,13 +169,14 @@ export class UploadService {
         where: {
           episodeId: episode.id,
           provider,
+          language,
           status: { not: 'DELETED' },
         },
       });
       if (hasDuplicate) {
         errors.push({
           row: rowNum,
-          message: `Duplicate: ${animeSlug} ep ${episodeNumber} already has active ${provider} source`,
+          message: `Duplicate: ${animeSlug} ep ${episodeNumber} already has active ${provider} (${language}) source`,
         });
         continue;
       }
@@ -175,6 +185,7 @@ export class UploadService {
         data: {
           episodeId: episode.id,
           provider,
+          language,
           sourceType: UploadSourceType.REMOTE_URL,
           sourceUrl: url,
           status: 'QUEUED',
@@ -206,6 +217,7 @@ export class UploadService {
           select: {
             id: true,
             provider: true,
+            language: true,
             status: true,
             embedUrl: true,
             remoteTrackingId: true,
@@ -234,7 +246,13 @@ export class UploadService {
             },
           },
           videoSource: {
-            select: { id: true, provider: true, status: true, embedUrl: true },
+            select: {
+              id: true,
+              provider: true,
+              language: true,
+              status: true,
+              embedUrl: true,
+            },
           },
         },
       });
@@ -258,6 +276,7 @@ export class UploadService {
           select: {
             id: true,
             provider: true,
+            language: true,
             status: true,
             embedUrl: true,
             remoteTrackingId: true,
@@ -284,14 +303,15 @@ export class UploadService {
   private async checkDuplicate(
     episodeId: string,
     provider: Provider,
+    language: SubtitleLanguage,
     sourceUrl?: string,
   ): Promise<void> {
     const existing = await this.prisma.videoSource.findFirst({
-      where: { episodeId, provider, status: { not: 'DELETED' } },
+      where: { episodeId, provider, language, status: { not: 'DELETED' } },
     });
     if (existing) {
       throw new BadRequestException(
-        `Duplicate: episode ${episodeId} already has an active ${provider} source`,
+        `Duplicate: episode ${episodeId} already has an active ${provider} (${language}) source`,
       );
     }
 
@@ -323,7 +343,7 @@ export class UploadService {
       throw new NotFoundException(`Episode ${dto.episodeId} not found`);
     }
 
-    await this.checkDuplicate(dto.episodeId, dto.provider);
+    await this.checkDuplicate(dto.episodeId, dto.provider, dto.language);
 
     const adapter = this.registry.get(dto.provider);
     if (!adapter.getUploadUrl) {
@@ -346,6 +366,7 @@ export class UploadService {
       extraFields: presign.extraFields,
       provider: dto.provider,
       episodeId: dto.episodeId,
+      language: dto.language,
     };
   }
 
@@ -354,6 +375,7 @@ export class UploadService {
     fileName: string,
     episodeId: string,
     provider: Provider,
+    language: SubtitleLanguage,
     userId: string,
   ) {
     const episode = await this.prisma.episode.findUnique({
@@ -363,7 +385,7 @@ export class UploadService {
       throw new NotFoundException(`Episode ${episodeId} not found`);
     }
 
-    await this.checkDuplicate(episodeId, provider);
+    await this.checkDuplicate(episodeId, provider, language);
 
     const adapter = this.registry.get(provider);
     if (!adapter.streamUpload) {
@@ -379,6 +401,7 @@ export class UploadService {
       data: {
         episodeId,
         provider,
+        language,
         providerFileId: result.providerFileId,
         embedUrl: result.embedUrl,
         downloadUrl: result.downloadUrl,
@@ -390,6 +413,7 @@ export class UploadService {
       data: {
         episodeId,
         provider,
+        language,
         sourceType: UploadSourceType.LOCAL,
         status: 'COMPLETED',
         videoSourceId: videoSource.id,
@@ -408,7 +432,7 @@ export class UploadService {
       throw new NotFoundException(`Episode ${dto.episodeId} not found`);
     }
 
-    await this.checkDuplicate(dto.episodeId, dto.provider);
+    await this.checkDuplicate(dto.episodeId, dto.provider, dto.language);
 
     const adapter = this.registry.get(dto.provider);
     if (!adapter.getUploadUrl) {
@@ -421,6 +445,7 @@ export class UploadService {
       data: {
         episodeId: dto.episodeId,
         provider: dto.provider,
+        language: dto.language,
         providerFileId: dto.providerFileId,
         embedUrl: dto.embedUrl,
         downloadUrl: dto.downloadUrl,
@@ -432,6 +457,7 @@ export class UploadService {
       data: {
         episodeId: dto.episodeId,
         provider: dto.provider,
+        language: dto.language,
         sourceType: UploadSourceType.LOCAL,
         status: 'COMPLETED',
         videoSourceId: videoSource.id,

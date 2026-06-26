@@ -1,5 +1,5 @@
+import { Provider, SubtitleLanguage } from '@prisma/client';
 import { IsEnum, IsUUID } from 'class-validator';
-import { Provider } from '@prisma/client';
 
 export class PresignUploadDto {
   @IsUUID()
@@ -7,4 +7,7 @@ export class PresignUploadDto {
 
   @IsEnum(Provider)
   provider: Provider;
+
+  @IsEnum(SubtitleLanguage)
+  language: SubtitleLanguage;
 }

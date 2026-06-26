@@ -1,3 +1,4 @@
+import { Provider, SubtitleLanguage, UploadSourceType } from '@prisma/client';
 import {
   IsEnum,
   IsOptional,
@@ -5,7 +6,6 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { Provider, UploadSourceType } from '@prisma/client';
 
 export class CreateUploadDto {
   @IsUUID()
@@ -16,6 +16,9 @@ export class CreateUploadDto {
 
   @IsEnum(UploadSourceType)
   sourceType: UploadSourceType;
+
+  @IsEnum(SubtitleLanguage)
+  language: SubtitleLanguage;
 
   @IsOptional()
   @IsString()

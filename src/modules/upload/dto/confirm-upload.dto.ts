@@ -1,5 +1,5 @@
+import { Provider, SubtitleLanguage } from '@prisma/client';
 import { IsEnum, IsString, IsUUID } from 'class-validator';
-import { Provider } from '@prisma/client';
 
 export class ConfirmUploadDto {
   @IsUUID()
@@ -7,6 +7,9 @@ export class ConfirmUploadDto {
 
   @IsEnum(Provider)
   provider: Provider;
+
+  @IsEnum(SubtitleLanguage)
+  language: SubtitleLanguage;
 
   @IsString()
   providerFileId: string;

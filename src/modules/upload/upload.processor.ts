@@ -72,14 +72,16 @@ export class UploadProcessor extends WorkerHost {
 
         const videoSource = await this.prisma.videoSource.upsert({
           where: {
-            episodeId_provider: {
+            episodeId_provider_language: {
               episodeId: uploadJob.episodeId,
               provider: uploadJob.provider,
+              language: uploadJob.language,
             },
           },
           create: {
             episodeId: uploadJob.episodeId,
             provider: uploadJob.provider,
+            language: uploadJob.language,
             status: 'UPLOADING',
             remoteTrackingId: remoteResult.trackingId,
           },
@@ -103,24 +105,26 @@ export class UploadProcessor extends WorkerHost {
 
         const videoSource = await this.prisma.videoSource.upsert({
           where: {
-            episodeId_provider: {
+            episodeId_provider_language: {
               episodeId: uploadJob.episodeId,
               provider: uploadJob.provider,
+              language: uploadJob.language,
             },
           },
           create: {
             episodeId: uploadJob.episodeId,
             provider: uploadJob.provider,
+            language: uploadJob.language,
             providerFileId: result.providerFileId,
             embedUrl: result.embedUrl,
             downloadUrl: result.downloadUrl,
-            status: 'ENCODING',
+            status: 'READY',
           },
           update: {
             providerFileId: result.providerFileId,
             embedUrl: result.embedUrl,
             downloadUrl: result.downloadUrl,
-            status: 'ENCODING',
+            status: 'READY',
           },
         });
 

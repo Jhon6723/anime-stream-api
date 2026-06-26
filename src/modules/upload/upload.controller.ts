@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { Provider, UserRole } from '@prisma/client';
+import { Provider, SubtitleLanguage, UserRole } from '@prisma/client';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -51,6 +51,7 @@ export class UploadController {
     @UploadedFile() file: Express.Multer.File,
     @Body('episodeId') episodeId: string,
     @Body('provider') provider: Provider,
+    @Body('language') language: SubtitleLanguage,
     @CurrentUser() user: AuthUser,
   ) {
     if (!file) {
@@ -61,6 +62,7 @@ export class UploadController {
       file.originalname,
       episodeId,
       provider,
+      language,
       user.id,
     );
   }
@@ -85,12 +87,18 @@ export class UploadController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: AuthUser,
     @Query('provider') provider: Provider,
+    @Query('language') language: SubtitleLanguage,
   ) {
     if (!file) {
       throw new BadRequestException('CSV file is required');
     }
     const content = file.buffer.toString('utf-8');
-    return this.uploadService.createCsvUpload(content, provider, user.id);
+    return this.uploadService.createCsvUpload(
+      content,
+      provider,
+      language,
+      user.id,
+    );
   }
 
   @Get('jobs')

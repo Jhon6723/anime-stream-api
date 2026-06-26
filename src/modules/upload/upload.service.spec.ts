@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Provider, UploadSourceType } from '@prisma/client';
+import { Provider, SubtitleLanguage, UploadSourceType } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -64,6 +64,7 @@ describe('UploadService', () => {
         episodeId: 'ep-1',
         provider: Provider.DOODSTREAM,
         sourceType: UploadSourceType.REMOTE_URL,
+        language: SubtitleLanguage.EN,
         sourceUrl: 'https://example.com/video.mp4',
       };
 
@@ -75,6 +76,7 @@ describe('UploadService', () => {
           episodeId: 'ep-1',
           provider: Provider.DOODSTREAM,
           sourceType: UploadSourceType.REMOTE_URL,
+          language: SubtitleLanguage.EN,
           sourceUrl: 'https://example.com/video.mp4',
           status: 'QUEUED',
           initiatedById: 'user-1',
@@ -97,6 +99,7 @@ describe('UploadService', () => {
         episodeId: 'nonexistent',
         provider: Provider.DOODSTREAM,
         sourceType: UploadSourceType.REMOTE_URL,
+        language: SubtitleLanguage.EN,
         sourceUrl: 'https://example.com/video.mp4',
       };
 
@@ -112,6 +115,7 @@ describe('UploadService', () => {
         episodeId: 'ep-1',
         provider: Provider.DOODSTREAM,
         sourceType: UploadSourceType.REMOTE_URL,
+        language: SubtitleLanguage.EN,
       };
 
       await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(
@@ -127,6 +131,7 @@ describe('UploadService', () => {
         episodeId: 'ep-1',
         provider: Provider.DOODSTREAM,
         sourceType: UploadSourceType.REMOTE_URL,
+        language: SubtitleLanguage.EN,
         sourceUrl: 'https://example.com/video.mp4',
       };
 
@@ -144,6 +149,7 @@ describe('UploadService', () => {
         episodeId: 'ep-1',
         provider: Provider.DOODSTREAM,
         sourceType: UploadSourceType.REMOTE_URL,
+        language: SubtitleLanguage.EN,
         sourceUrl: 'https://example.com/video.mp4',
       };
 
@@ -163,9 +169,18 @@ describe('UploadService', () => {
 
       const dto: BulkUploadDto = {
         provider: Provider.MIXDROP,
+        language: SubtitleLanguage.EN,
         items: [
-          { episodeId: 'ep-1', url: 'https://example.com/1.mp4' },
-          { episodeId: 'ep-1', url: 'https://example.com/2.mp4' },
+          {
+            episodeId: 'ep-1',
+            url: 'https://example.com/1.mp4',
+            language: SubtitleLanguage.EN,
+          },
+          {
+            episodeId: 'ep-1',
+            url: 'https://example.com/2.mp4',
+            language: SubtitleLanguage.EN,
+          },
         ],
       };
 
@@ -180,7 +195,14 @@ describe('UploadService', () => {
 
       const dto: BulkUploadDto = {
         provider: Provider.STREAMTAPE,
-        items: [{ episodeId: 'nonexistent', url: 'https://example.com/1.mp4' }],
+        language: SubtitleLanguage.EN,
+        items: [
+          {
+            episodeId: 'nonexistent',
+            url: 'https://example.com/1.mp4',
+            language: SubtitleLanguage.EN,
+          },
+        ],
       };
 
       const result = await service.createBulkUpload(dto, 'user-1');
@@ -204,6 +226,7 @@ describe('UploadService', () => {
       const result = await service.createCsvUpload(
         csv,
         Provider.DOODSTREAM,
+        SubtitleLanguage.EN,
         'user-1',
       );
 
@@ -218,6 +241,7 @@ describe('UploadService', () => {
       const result = await service.createCsvUpload(
         csv,
         Provider.DOODSTREAM,
+        SubtitleLanguage.EN,
         'user-1',
       );
 
@@ -235,6 +259,7 @@ describe('UploadService', () => {
       const result = await service.createCsvUpload(
         csv,
         Provider.DOODSTREAM,
+        SubtitleLanguage.EN,
         'user-1',
       );
 
@@ -282,6 +307,7 @@ describe('UploadService', () => {
       const result = await service.presignUpload({
         episodeId: 'ep-1',
         provider: Provider.DOODSTREAM,
+        language: SubtitleLanguage.EN,
       });
 
       expect(result.uploadUrl).toBe('https://upload.doodapi.com/abc');
@@ -297,6 +323,7 @@ describe('UploadService', () => {
         service.presignUpload({
           episodeId: 'ep-1',
           provider: Provider.MIXDROP,
+          language: SubtitleLanguage.EN,
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -309,6 +336,7 @@ describe('UploadService', () => {
         service.presignUpload({
           episodeId: 'ep-1',
           provider: Provider.DOODSTREAM,
+          language: SubtitleLanguage.EN,
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -326,6 +354,7 @@ describe('UploadService', () => {
         {
           episodeId: 'ep-1',
           provider: Provider.STREAMTAPE,
+          language: SubtitleLanguage.EN,
           providerFileId: 'file-abc',
           embedUrl: 'https://streamtape.com/e/file-abc',
         },
@@ -338,6 +367,7 @@ describe('UploadService', () => {
         data: expect.objectContaining({
           episodeId: 'ep-1',
           provider: Provider.STREAMTAPE,
+          language: SubtitleLanguage.EN,
           providerFileId: 'file-abc',
           status: 'ENCODING',
         }),
@@ -354,6 +384,7 @@ describe('UploadService', () => {
           {
             episodeId: 'ep-1',
             provider: Provider.STREAMTAPE,
+            language: SubtitleLanguage.EN,
             providerFileId: 'file-abc',
             embedUrl: 'https://streamtape.com/e/file-abc',
           },
@@ -372,6 +403,7 @@ describe('UploadService', () => {
           {
             episodeId: 'ep-1',
             provider: Provider.DOODSTREAM,
+            language: SubtitleLanguage.EN,
             providerFileId: 'file-abc',
             embedUrl: 'https://dood.to/e/file-abc',
           },

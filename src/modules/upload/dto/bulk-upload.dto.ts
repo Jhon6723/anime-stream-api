@@ -1,3 +1,5 @@
+import { Provider, SubtitleLanguage } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
@@ -5,8 +7,6 @@ import {
   IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { Provider } from '@prisma/client';
-import { Type } from 'class-transformer';
 
 export class BulkUploadItemDto {
   @IsUUID()
@@ -14,11 +14,17 @@ export class BulkUploadItemDto {
 
   @IsString()
   url: string;
+
+  @IsEnum(SubtitleLanguage)
+  language: SubtitleLanguage;
 }
 
 export class BulkUploadDto {
   @IsEnum(Provider)
   provider: Provider;
+
+  @IsEnum(SubtitleLanguage)
+  language: SubtitleLanguage;
 
   @IsArray()
   @ValidateNested({ each: true })

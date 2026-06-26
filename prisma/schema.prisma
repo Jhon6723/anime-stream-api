@@ -14,7 +14,6 @@ enum UserRole {
   ADMIN
   MODERATOR
   UPLOADER
-  USER
 }
 
 enum UserStatus {
@@ -63,6 +62,11 @@ enum UploadSourceType {
   REMOTE_URL
 }
 
+enum SubtitleLanguage {
+  EN
+  ES
+}
+
 enum UploadJobStatus {
   QUEUED
   UPLOADING
@@ -91,18 +95,12 @@ enum AdPlacement {
   FOOTER
 }
 
-enum UploaderRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
   username     String     @unique
   passwordHash String     @map("password_hash")
-  role         UserRole   @default(USER)
+  role         UserRole   @default(UPLOADER)
   status       UserStatus @default(ACTIVE)
 
   approvedById  String? @map("approved_by")
@@ -115,8 +113,6 @@ model User {
   moderationLogs ModerationLog[]
   uploadJobs     UploadJob[]
   adConfigs      AdConfig[]
-  uploaderRequests       UploaderRequest[] @relation("UploaderRequestUser")
-  reviewedUploaderRequests UploaderRequest[] @relation("UploaderRequestReviewer")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -194,6 +190,7 @@ model VideoSource {
   episodeId         String            @map("episode_id")
   episode           Episode           @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   provider          Provider
+  language          SubtitleLanguage  @default(EN)
   providerFileId    String?           @map("provider_file_id")
   embedUrl          String?           @map("embed_url")
   downloadUrl       String?           @map("download_url")
@@ -207,7 +204,7 @@ model VideoSource {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([episodeId, provider])
+  @@unique([episodeId, provider, language])
   @@index([status])
   @@map("video_sources")
 }
@@ -238,6 +235,7 @@ model UploadJob {
   videoSourceId String?          @map("video_source_id")
   videoSource   VideoSource?     @relation(fields: [videoSourceId], references: [id])
   provider      Provider
+  language      SubtitleLanguage @default(EN)
   sourceType    UploadSourceType @map("source_type")
   sourceUrl     String?          @map("source_url")
   status        UploadJobStatus  @default(QUEUED)
@@ -282,22 +280,6 @@ model ProviderAccount {
 
   @@index([provider, isActive])
   @@map("provider_accounts")
-}
-
-model UploaderRequest {
-  id            String               @id @default(uuid())
-  userId        String               @map("user_id")
-  user          User                 @relation("UploaderRequestUser", fields: [userId], references: [id])
-  status        UploaderRequestStatus @default(PENDING)
-  reviewedById  String?              @map("reviewed_by")
-  reviewedBy    User?                @relation("UploaderRequestReviewer", fields: [reviewedById], references: [id])
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@index([userId])
-  @@map("uploader_requests")
 }
 
 model BrokenLinkReport {

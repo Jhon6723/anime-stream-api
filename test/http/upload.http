@@ -1,8 +1,10 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNDgyOTYyLCJleHAiOjE3ODI0ODM4NjJ9.FXi8IuFTFTF30pp1zFL3F8j-a1aqK8bxQCL_KlEUJuA
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNTAwNjkyLCJleHAiOjE3ODI1MDE1OTJ9.-rbalrASmWp6aFsx1RPwDMUzz3WwxkTq7AeCPRIJI48
 
-@episodeId = 14d5f0ab-e0e4-4592-8130-dfba579e62a1
+@episodeId = 30dd8e3a-af66-446f-a56f-4f9a2d10f1f5
+
+@episodeUrl = https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/T/Tensei%20Shitara%20Slime%20Datta%20Ken/Season%201/Episode%202//02%20Meeting%20the%20Goblins.mp4
 
 ### ═══════════════════════════════════════════════════
 ### REMOTE UPLOAD — POST /uploads (por provider)
@@ -16,7 +18,8 @@ Content-Type: application/json
   "episodeId": "{{episodeId}}",
   "provider": "DOODSTREAM",
   "sourceType": "REMOTE_URL",
-  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/T/Tensei%20Shitara%20Slime%20Datta%20Ken/Season%201/Episode%201//01%20The%20Storm%20Dragon,%20Veldora.mp4"
+  "language": "EN",
+  "sourceUrl": "{{episodeUrl}}"
 }
 
 ### Remote upload — MixDrop
@@ -28,7 +31,8 @@ Content-Type: application/json
   "episodeId": "{{episodeId}}",
   "provider": "MIXDROP",
   "sourceType": "REMOTE_URL",
-  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/T/Tensei%20Shitara%20Slime%20Datta%20Ken/Season%201/Episode%201//01%20The%20Storm%20Dragon,%20Veldora.mp4"
+  "language": "EN",
+  "sourceUrl": "{{episodeUrl}}"
 }
 
 ### Remote upload — Streamtape
@@ -40,7 +44,8 @@ Content-Type: application/json
   "episodeId": "{{episodeId}}",
   "provider": "STREAMTAPE",
   "sourceType": "REMOTE_URL",
-  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/N/Naruto/Season%201/Episode%204//04%20Pass%20or%20Fail%20Survival%20Test.mp4"
+  "language": "EN",
+  "sourceUrl": "{{episodeUrl}}"
 }
 
 ### ═══════════════════════════════════════════════════
@@ -63,6 +68,10 @@ Content-Disposition: form-data; name="provider"
 
 DOODSTREAM
 --boundary
+Content-Disposition: form-data; name="language"
+
+EN
+--boundary
 Content-Disposition: form-data; name="file"; filename="episode-01.mp4"
 Content-Type: video/mp4
 
@@ -82,6 +91,10 @@ Content-Disposition: form-data; name="episodeId"
 Content-Disposition: form-data; name="provider"
 
 MIXDROP
+--boundary
+Content-Disposition: form-data; name="language"
+
+EN
 --boundary
 Content-Disposition: form-data; name="file"; filename="episode-01.mp4"
 Content-Type: video/mp4
@@ -103,6 +116,10 @@ Content-Disposition: form-data; name="provider"
 
 STREAMTAPE
 --boundary
+Content-Disposition: form-data; name="language"
+
+EN
+--boundary
 Content-Disposition: form-data; name="file"; filename="episode-01.mp4"
 Content-Type: video/mp4
 
@@ -122,7 +139,8 @@ Content-Type: application/json
 
 {
   "episodeId": "{{episodeId}}",
-  "provider": "STREAMTAPE"
+  "provider": "STREAMTAPE",
+  "language": "EN"
 }
 
 ### Presign upload — DoodStream (retorna error, usar /uploads/stream)
@@ -132,7 +150,8 @@ Content-Type: application/json
 
 {
   "episodeId": "{{episodeId}}",
-  "provider": "DOODSTREAM"
+  "provider": "DOODSTREAM",
+  "language": "EN"
 }
 
 ### Presign upload — MixDrop (retorna error, no soporta presign)
@@ -142,7 +161,8 @@ Content-Type: application/json
 
 {
   "episodeId": "{{episodeId}}",
-  "provider": "MIXDROP"
+  "provider": "MIXDROP",
+  "language": "EN"
 }
 
 ### ═══════════════════════════════════════════════════
@@ -158,6 +178,7 @@ Content-Type: application/json
 {
   "episodeId": "{{episodeId}}",
   "provider": "DOODSTREAM",
+  "language": "EN",
   "providerFileId": "FILECODE_FROM_PROVIDER",
   "embedUrl": "https://dood.to/e/FILECODE_FROM_PROVIDER"
 }
@@ -170,6 +191,7 @@ Content-Type: application/json
 {
   "episodeId": "{{episodeId}}",
   "provider": "MIXDROP",
+  "language": "EN",
   "providerFileId": "FILEREF_FROM_PROVIDER",
   "embedUrl": "https://mixdrop.co/e/FILEREF_FROM_PROVIDER"
 }
@@ -182,6 +204,7 @@ Content-Type: application/json
 {
   "episodeId": "{{episodeId}}",
   "provider": "STREAMTAPE",
+  "language": "EN",
   "providerFileId": "FILEID_FROM_PROVIDER",
   "embedUrl": "https://streamtape.com/e/FILEID_FROM_PROVIDER"
 }
@@ -197,10 +220,11 @@ Content-Type: application/json
 
 {
   "provider": "DOODSTREAM",
+  "language": "EN",
   "items": [
-    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4" },
-    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4" },
-    { "episodeId": "REPLACE_WITH_EP_UUID_3", "url": "https://example.com/ep3.mp4" }
+    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4", "language": "EN" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4", "language": "EN" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_3", "url": "https://example.com/ep3.mp4", "language": "EN" }
   ]
 }
 
@@ -211,9 +235,10 @@ Content-Type: application/json
 
 {
   "provider": "MIXDROP",
+  "language": "EN",
   "items": [
-    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4" },
-    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4" }
+    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4", "language": "EN" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4", "language": "EN" }
   ]
 }
 
@@ -224,9 +249,10 @@ Content-Type: application/json
 
 {
   "provider": "STREAMTAPE",
+  "language": "EN",
   "items": [
-    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4" },
-    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4" }
+    { "episodeId": "REPLACE_WITH_EP_UUID_1", "url": "https://example.com/ep1.mp4", "language": "EN" },
+    { "episodeId": "REPLACE_WITH_EP_UUID_2", "url": "https://example.com/ep2.mp4", "language": "EN" }
   ]
 }
 
@@ -235,7 +261,7 @@ Content-Type: application/json
 ### ═══════════════════════════════════════════════════
 
 ### CSV upload — DoodStream
-POST {{baseUrl}}/uploads/csv?provider=DOODSTREAM
+POST {{baseUrl}}/uploads/csv?provider=DOODSTREAM&language=EN
 Authorization: Bearer {{accessToken}}
 Content-Type: multipart/form-data; boundary=boundary
 
@@ -251,7 +277,7 @@ naruto,3,https://example.com/naruto-03.mp4
 --boundary--
 
 ### CSV upload — MixDrop
-POST {{baseUrl}}/uploads/csv?provider=MIXDROP
+POST {{baseUrl}}/uploads/csv?provider=MIXDROP&language=EN
 Authorization: Bearer {{accessToken}}
 Content-Type: multipart/form-data; boundary=boundary
 
@@ -266,7 +292,7 @@ naruto,2,https://example.com/naruto-02.mp4
 --boundary--
 
 ### CSV upload — Streamtape
-POST {{baseUrl}}/uploads/csv?provider=STREAMTAPE
+POST {{baseUrl}}/uploads/csv?provider=STREAMTAPE&language=EN
 Authorization: Bearer {{accessToken}}
 Content-Type: multipart/form-data; boundary=boundary
 
