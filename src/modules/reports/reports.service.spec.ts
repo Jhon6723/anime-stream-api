@@ -8,8 +8,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 describe('ReportsService', () => {
   let service: ReportsService;
   let prisma: {
-    videoSource: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
-    brokenLinkReport: { create: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+    videoSource: {
+      findUnique: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    brokenLinkReport: {
+      create: ReturnType<typeof vi.fn>;
+      count: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
   };
   let config: { get: ReturnType<typeof vi.fn> };
 
@@ -40,12 +47,20 @@ describe('ReportsService', () => {
       prisma.videoSource.findUnique.mockResolvedValue({
         id: 'vs-1',
         status: VideoSourceStatus.READY,
-        episode: { anime: { title: 'Naruto' }, episodeNumber: 1, title: 'Ep 1' },
+        episode: {
+          anime: { title: 'Naruto' },
+          episodeNumber: 1,
+          title: 'Ep 1',
+        },
       });
       prisma.brokenLinkReport.create.mockResolvedValue({ id: 'report-1' });
       prisma.brokenLinkReport.count.mockResolvedValue(1);
 
-      const result = await service.reportBrokenLink('vs-1', '127.0.0.1', 'Mozilla');
+      const result = await service.reportBrokenLink(
+        'vs-1',
+        '127.0.0.1',
+        'Mozilla',
+      );
 
       expect(result.id).toBe('report-1');
       expect(result.reportCount).toBe(1);
@@ -57,7 +72,11 @@ describe('ReportsService', () => {
       prisma.videoSource.findUnique.mockResolvedValue({
         id: 'vs-1',
         status: VideoSourceStatus.READY,
-        episode: { anime: { title: 'Naruto' }, episodeNumber: 1, title: 'Ep 1' },
+        episode: {
+          anime: { title: 'Naruto' },
+          episodeNumber: 1,
+          title: 'Ep 1',
+        },
       });
       prisma.brokenLinkReport.create.mockResolvedValue({ id: 'report-3' });
       prisma.brokenLinkReport.count.mockResolvedValue(3);
@@ -74,7 +93,11 @@ describe('ReportsService', () => {
       prisma.videoSource.findUnique.mockResolvedValue({
         id: 'vs-1',
         status: VideoSourceStatus.ERROR,
-        episode: { anime: { title: 'Naruto' }, episodeNumber: 1, title: 'Ep 1' },
+        episode: {
+          anime: { title: 'Naruto' },
+          episodeNumber: 1,
+          title: 'Ep 1',
+        },
       });
       prisma.brokenLinkReport.create.mockResolvedValue({ id: 'report-5' });
       prisma.brokenLinkReport.count.mockResolvedValue(5);
@@ -104,7 +127,12 @@ describe('ReportsService', () => {
             id: 'vs-1',
             provider: 'DOODSTREAM',
             status: 'READY',
-            episode: { id: 'ep-1', episodeNumber: 1, title: 'Ep 1', anime: { id: 'a-1', title: 'Naruto', slug: 'naruto' } },
+            episode: {
+              id: 'ep-1',
+              episodeNumber: 1,
+              title: 'Ep 1',
+              anime: { id: 'a-1', title: 'Naruto', slug: 'naruto' },
+            },
           },
         },
       ]);

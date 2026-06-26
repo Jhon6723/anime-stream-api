@@ -1,16 +1,37 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Provider, UploadSourceType } from '@prisma/client';
+import { Queue } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UploadJobData } from '../../queue/queue.constants';
+import { ProviderAccountService } from '../providers/provider-account.service';
+import { ProviderRegistryService } from '../providers/provider-registry.service';
 import { BulkUploadDto } from './dto/bulk-upload.dto';
 import { CreateUploadDto } from './dto/create-upload.dto';
 import { UploadService } from './upload.service';
+import { VideoSourceSyncService } from './video-source-sync.service';
+
+type MockedQueue = Pick<Queue<UploadJobData>, 'add'>;
+type MockedPrisma = {
+  episode: { findUnique: ReturnType<typeof vi.fn> };
+  anime: { findUnique: ReturnType<typeof vi.fn> };
+  videoSource: {
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
+  uploadJob: {
+    create: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+  };
+};
 
 describe('UploadService', () => {
   let service: UploadService;
-  let prisma: any;
-  let uploadQueue: any;
-  let registry: any;
-  let accountService: any;
+  let prisma: MockedPrisma;
+  let uploadQueue: MockedQueue;
+  let registry: { get: ReturnType<typeof vi.fn> };
+  let accountService: { resolveDecryptedApiKey: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -23,7 +44,13 @@ describe('UploadService', () => {
     uploadQueue = { add: vi.fn() };
     registry = { get: vi.fn() };
     accountService = { resolveDecryptedApiKey: vi.fn() };
-    service = new UploadService(uploadQueue, prisma, registry, accountService, { syncPendingSources: vi.fn() } as any);
+    service = new UploadService(
+      uploadQueue as unknown as Queue<UploadJobData>,
+      prisma as unknown as PrismaService,
+      registry as unknown as ProviderRegistryService,
+      accountService as unknown as ProviderAccountService,
+      { syncPendingSources: vi.fn() } as unknown as VideoSourceSyncService,
+    );
   });
 
   describe('createUpload', () => {
@@ -53,10 +80,14 @@ describe('UploadService', () => {
           initiatedById: 'user-1',
         }),
       });
-      expect(uploadQueue.add).toHaveBeenCalledWith('process-upload', { uploadJobId: 'job-1' }, {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 5_000 },
-      });
+      expect(uploadQueue.add).toHaveBeenCalledWith(
+        'process-upload',
+        { uploadJobId: 'job-1' },
+        {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5_000 },
+        },
+      );
     });
 
     it('throws NotFoundException when episode does not exist', async () => {
@@ -69,7 +100,9 @@ describe('UploadService', () => {
         sourceUrl: 'https://example.com/video.mp4',
       };
 
-      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when REMOTE_URL has no sourceUrl', async () => {
@@ -81,7 +114,9 @@ describe('UploadService', () => {
         sourceType: UploadSourceType.REMOTE_URL,
       };
 
-      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException on duplicate', async () => {
@@ -95,7 +130,9 @@ describe('UploadService', () => {
         sourceUrl: 'https://example.com/video.mp4',
       };
 
-      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when a pending job with same sourceUrl exists', async () => {
@@ -110,7 +147,9 @@ describe('UploadService', () => {
         sourceUrl: 'https://example.com/video.mp4',
       };
 
-      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.createUpload(dto, 'user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -152,7 +191,8 @@ describe('UploadService', () => {
 
   describe('createCsvUpload', () => {
     it('parses valid CSV and enqueues jobs', async () => {
-      const csv = 'anime_slug,episode_number,url\nnaruto,1,https://example.com/ep1.mp4\nnaruto,2,https://example.com/ep2.mp4';
+      const csv =
+        'anime_slug,episode_number,url\nnaruto,1,https://example.com/ep1.mp4\nnaruto,2,https://example.com/ep2.mp4';
 
       prisma.anime.findUnique.mockResolvedValue({
         id: 'anime-1',
@@ -161,16 +201,25 @@ describe('UploadService', () => {
       prisma.videoSource.findFirst.mockResolvedValue(null);
       prisma.uploadJob.create.mockResolvedValue({ id: 'job-1' });
 
-      const result = await service.createCsvUpload(csv, Provider.DOODSTREAM, 'user-1');
+      const result = await service.createCsvUpload(
+        csv,
+        Provider.DOODSTREAM,
+        'user-1',
+      );
 
       expect(result.enqueued).toBe(2);
       expect(result.errors).toHaveLength(0);
     });
 
     it('reports errors for missing fields', async () => {
-      const csv = 'anime_slug,episode_number,url\n,,https://example.com/ep1.mp4';
+      const csv =
+        'anime_slug,episode_number,url\n,,https://example.com/ep1.mp4';
 
-      const result = await service.createCsvUpload(csv, Provider.DOODSTREAM, 'user-1');
+      const result = await service.createCsvUpload(
+        csv,
+        Provider.DOODSTREAM,
+        'user-1',
+      );
 
       expect(result.enqueued).toBe(0);
       expect(result.errors).toHaveLength(1);
@@ -178,11 +227,16 @@ describe('UploadService', () => {
     });
 
     it('reports errors for non-existent anime/episode', async () => {
-      const csv = 'anime_slug,episode_number,url\nunknown,99,https://example.com/ep1.mp4';
+      const csv =
+        'anime_slug,episode_number,url\nunknown,99,https://example.com/ep1.mp4';
 
       prisma.anime.findUnique.mockResolvedValue({ id: 'a-1', episodes: [] });
 
-      const result = await service.createCsvUpload(csv, Provider.DOODSTREAM, 'user-1');
+      const result = await service.createCsvUpload(
+        csv,
+        Provider.DOODSTREAM,
+        'user-1',
+      );
 
       expect(result.enqueued).toBe(0);
       expect(result.errors).toHaveLength(1);
@@ -240,7 +294,10 @@ describe('UploadService', () => {
       registry.get.mockReturnValue({});
 
       await expect(
-        service.presignUpload({ episodeId: 'ep-1', provider: Provider.MIXDROP }),
+        service.presignUpload({
+          episodeId: 'ep-1',
+          provider: Provider.MIXDROP,
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -249,7 +306,10 @@ describe('UploadService', () => {
       prisma.videoSource.findFirst.mockResolvedValue({ id: 'vs-1' });
 
       await expect(
-        service.presignUpload({ episodeId: 'ep-1', provider: Provider.DOODSTREAM }),
+        service.presignUpload({
+          episodeId: 'ep-1',
+          provider: Provider.DOODSTREAM,
+        }),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -262,12 +322,15 @@ describe('UploadService', () => {
       prisma.uploadJob.create.mockResolvedValue({ id: 'job-1' });
       registry.get.mockReturnValue({ getUploadUrl: vi.fn() });
 
-      const result = await service.confirmUpload({
-        episodeId: 'ep-1',
-        provider: Provider.STREAMTAPE,
-        providerFileId: 'file-abc',
-        embedUrl: 'https://streamtape.com/e/file-abc',
-      }, 'user-1');
+      const result = await service.confirmUpload(
+        {
+          episodeId: 'ep-1',
+          provider: Provider.STREAMTAPE,
+          providerFileId: 'file-abc',
+          embedUrl: 'https://streamtape.com/e/file-abc',
+        },
+        'user-1',
+      );
 
       expect(result.videoSource.id).toBe('vs-1');
       expect(result.uploadJob.id).toBe('job-1');
@@ -287,12 +350,15 @@ describe('UploadService', () => {
       registry.get.mockReturnValue({ getUploadUrl: vi.fn() });
 
       await expect(
-        service.confirmUpload({
-          episodeId: 'ep-1',
-          provider: Provider.STREAMTAPE,
-          providerFileId: 'file-abc',
-          embedUrl: 'https://streamtape.com/e/file-abc',
-        }, 'user-1'),
+        service.confirmUpload(
+          {
+            episodeId: 'ep-1',
+            provider: Provider.STREAMTAPE,
+            providerFileId: 'file-abc',
+            embedUrl: 'https://streamtape.com/e/file-abc',
+          },
+          'user-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -302,12 +368,15 @@ describe('UploadService', () => {
       registry.get.mockReturnValue({ getUploadUrl: undefined });
 
       await expect(
-        service.confirmUpload({
-          episodeId: 'ep-1',
-          provider: Provider.DOODSTREAM,
-          providerFileId: 'file-abc',
-          embedUrl: 'https://dood.to/e/file-abc',
-        }, 'user-1'),
+        service.confirmUpload(
+          {
+            episodeId: 'ep-1',
+            provider: Provider.DOODSTREAM,
+            providerFileId: 'file-abc',
+            embedUrl: 'https://dood.to/e/file-abc',
+          },
+          'user-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });

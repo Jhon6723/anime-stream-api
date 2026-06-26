@@ -1,4 +1,8 @@
-import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserStatus } from '@prisma/client';
@@ -27,10 +31,22 @@ const mockUser = {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: { user: { findFirst: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> } };
-  let jwt: { signAsync: ReturnType<typeof vi.fn>; verifyAsync: ReturnType<typeof vi.fn> };
+  let prisma: {
+    user: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
+      create: ReturnType<typeof vi.fn>;
+    };
+  };
+  let jwt: {
+    signAsync: ReturnType<typeof vi.fn>;
+    verifyAsync: ReturnType<typeof vi.fn>;
+  };
   let config: { get: ReturnType<typeof vi.fn> };
-  let redis: { blacklistToken: ReturnType<typeof vi.fn>; isTokenBlacklisted: ReturnType<typeof vi.fn> };
+  let redis: {
+    blacklistToken: ReturnType<typeof vi.fn>;
+    isTokenBlacklisted: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,10 +62,14 @@ describe('AuthService', () => {
     };
 
     jwt = {
-      signAsync: vi.fn().mockImplementation((payload, opts) => {
-        const token = `token-${opts.secret.includes('refresh') ? 'refresh' : 'access'}-${payload.jti ?? 'no-jti'}`;
-        return Promise.resolve(token);
-      }),
+      signAsync: vi
+        .fn()
+        .mockImplementation(
+          (payload: { jti?: string }, opts: { secret: string }) => {
+            const token = `token-${opts.secret.includes('refresh') ? 'refresh' : 'access'}-${payload.jti ?? 'no-jti'}`;
+            return Promise.resolve(token);
+          },
+        ),
       verifyAsync: vi.fn(),
     };
 
@@ -143,7 +163,10 @@ describe('AuthService', () => {
 
     it('throws ForbiddenException for non-active user', async () => {
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, status: UserStatus.SUSPENDED });
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        status: UserStatus.SUSPENDED,
+      });
 
       await expect(
         service.login({ email: 'test@test.com', password: 'password123' }),
@@ -162,27 +185,36 @@ describe('AuthService', () => {
       expect(result.refreshToken).toBeDefined();
       expect(result.user).toBeDefined();
       expect(result.user.id).toBe('user-1');
-      expect(redis.blacklistToken).toHaveBeenCalledWith('jti-1', expect.any(Number));
+      expect(redis.blacklistToken).toHaveBeenCalledWith(
+        'jti-1',
+        expect.any(Number),
+      );
     });
 
     it('throws UnauthorizedException for blacklisted token', async () => {
       jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', jti: 'jti-1' });
       redis.isTokenBlacklisted.mockResolvedValue(true);
 
-      await expect(service.refresh('blacklisted-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('blacklisted-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('throws UnauthorizedException for non-existent user', async () => {
       jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', jti: 'jti-1' });
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.refresh('valid-refresh-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('valid-refresh-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('throws UnauthorizedException for invalid token', async () => {
       jwt.verifyAsync.mockRejectedValue(new Error('invalid'));
 
-      await expect(service.refresh('invalid-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('invalid-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -192,7 +224,10 @@ describe('AuthService', () => {
 
       await service.logout('valid-refresh-token');
 
-      expect(redis.blacklistToken).toHaveBeenCalledWith('jti-1', expect.any(Number));
+      expect(redis.blacklistToken).toHaveBeenCalledWith(
+        'jti-1',
+        expect.any(Number),
+      );
     });
 
     it('does not throw for invalid token', async () => {

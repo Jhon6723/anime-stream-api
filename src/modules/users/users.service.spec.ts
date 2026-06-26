@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole, UserStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -81,7 +85,10 @@ describe('UsersService', () => {
   describe('updateRole', () => {
     it('updates user role', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockResolvedValue({ ...mockUser, role: UserRole.MODERATOR });
+      prisma.user.update.mockResolvedValue({
+        ...mockUser,
+        role: UserRole.MODERATOR,
+      });
 
       const result = await service.updateRole(
         'user-1',
@@ -140,9 +147,9 @@ describe('UsersService', () => {
         role: UserRole.UPLOADER,
       });
 
-      await expect(service.approveUploader('user-1', 'admin-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.approveUploader('user-1', 'admin-1'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws NotFoundException for non-existent user', async () => {
@@ -157,7 +164,10 @@ describe('UsersService', () => {
   describe('updateStatus', () => {
     it('updates user status', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockResolvedValue({ ...mockUser, status: UserStatus.SUSPENDED });
+      prisma.user.update.mockResolvedValue({
+        ...mockUser,
+        status: UserStatus.SUSPENDED,
+      });
 
       const result = await service.updateStatus(
         'user-1',
@@ -198,7 +208,11 @@ describe('UsersService', () => {
       });
 
       const result = await service.createByAdmin(
-        { email: 'mod@example.com', username: 'mod1', password: 'Password123!' },
+        {
+          email: 'mod@example.com',
+          username: 'mod1',
+          password: 'Password123!',
+        },
         'admin-1',
       );
 
@@ -229,7 +243,12 @@ describe('UsersService', () => {
       });
 
       const result = await service.createByAdmin(
-        { email: 'up@example.com', username: 'up1', password: 'Password123!', role: UserRole.UPLOADER },
+        {
+          email: 'up@example.com',
+          username: 'up1',
+          password: 'Password123!',
+          role: UserRole.UPLOADER,
+        },
         'admin-1',
       );
 
@@ -241,7 +260,11 @@ describe('UsersService', () => {
 
       await expect(
         service.createByAdmin(
-          { email: 'test@test.com', username: 'mod1', password: 'Password123!' },
+          {
+            email: 'test@test.com',
+            username: 'mod1',
+            password: 'Password123!',
+          },
           'admin-1',
         ),
       ).rejects.toThrow(ConflictException);

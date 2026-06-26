@@ -4,9 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { UploaderRequestStatus, UserRole } from '@prisma/client';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { UploaderRequestsService } from './uploader-requests.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UploaderRequestsService } from './uploader-requests.service';
 
 const mockUser = {
   id: 'user-1',
@@ -28,7 +28,10 @@ const mockRequest = {
 describe('UploaderRequestsService', () => {
   let service: UploaderRequestsService;
   let prisma: {
-    user: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+    user: {
+      findUnique: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
     uploaderRequest: {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
@@ -73,9 +76,14 @@ describe('UploaderRequestsService', () => {
     });
 
     it('throws BadRequestException if user is not USER role', async () => {
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, role: UserRole.UPLOADER });
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        role: UserRole.UPLOADER,
+      });
 
-      await expect(service.create('user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.create('user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws ConflictException if pending request already exists', async () => {
@@ -110,7 +118,11 @@ describe('UploaderRequestsService', () => {
   describe('approve', () => {
     it('approves request and upgrades user to UPLOADER', async () => {
       prisma.uploaderRequest.findUnique.mockResolvedValue(mockRequest);
-      const approvedRequest = { ...mockRequest, status: UploaderRequestStatus.APPROVED, reviewedById: 'admin-1' };
+      const approvedRequest = {
+        ...mockRequest,
+        status: UploaderRequestStatus.APPROVED,
+        reviewedById: 'admin-1',
+      };
       prisma.$transaction.mockResolvedValue([approvedRequest]);
 
       const result = await service.approve('req-1', 'admin-1');
@@ -125,20 +137,28 @@ describe('UploaderRequestsService', () => {
         status: UploaderRequestStatus.APPROVED,
       });
 
-      await expect(service.approve('req-1', 'admin-1')).rejects.toThrow(BadRequestException);
+      await expect(service.approve('req-1', 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws NotFoundException if request does not exist', async () => {
       prisma.uploaderRequest.findUnique.mockResolvedValue(null);
 
-      await expect(service.approve('nope', 'admin-1')).rejects.toThrow(NotFoundException);
+      await expect(service.approve('nope', 'admin-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('reject', () => {
     it('rejects request and sets reviewedById', async () => {
       prisma.uploaderRequest.findUnique.mockResolvedValue(mockRequest);
-      const rejectedRequest = { ...mockRequest, status: UploaderRequestStatus.REJECTED, reviewedById: 'admin-1' };
+      const rejectedRequest = {
+        ...mockRequest,
+        status: UploaderRequestStatus.REJECTED,
+        reviewedById: 'admin-1',
+      };
       prisma.uploaderRequest.update.mockResolvedValue(rejectedRequest);
 
       const result = await service.reject('req-1', 'admin-1');
@@ -153,13 +173,17 @@ describe('UploaderRequestsService', () => {
         status: UploaderRequestStatus.REJECTED,
       });
 
-      await expect(service.reject('req-1', 'admin-1')).rejects.toThrow(BadRequestException);
+      await expect(service.reject('req-1', 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws NotFoundException if request does not exist', async () => {
       prisma.uploaderRequest.findUnique.mockResolvedValue(null);
 
-      await expect(service.reject('nope', 'admin-1')).rejects.toThrow(NotFoundException);
+      await expect(service.reject('nope', 'admin-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
