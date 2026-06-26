@@ -72,6 +72,7 @@ enum UploadJobStatus {
 }
 
 enum ModerationAction {
+  APPROVE
   WARNING
   DISABLE
   RE_ENABLE
@@ -196,6 +197,7 @@ model VideoSource {
   providerFileId    String?           @map("provider_file_id")
   embedUrl          String?           @map("embed_url")
   downloadUrl       String?           @map("download_url")
+  remoteTrackingId  String?           @map("remote_tracking_id")
   status            VideoSourceStatus @default(UPLOADING)
   viewsCount        BigInt            @default(0) @map("views_count")
   earningsEstimated Decimal           @default(0) @map("earnings_estimated") @db.Decimal(12, 4)
