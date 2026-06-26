@@ -1,8 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class UsersService {
@@ -106,6 +110,42 @@ export class UsersService {
         username: true,
         role: true,
         status: true,
+      },
+    });
+  }
+
+  async createByAdmin(dto: CreateUserByAdminDto, adminId: string) {
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: dto.email.toLowerCase() },
+          { username: dto.username },
+        ],
+      },
+    });
+    if (existing) {
+      throw new ConflictException('Email or username already in use');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const role = dto.role ?? UserRole.MODERATOR;
+
+    return this.prisma.user.create({
+      data: {
+        email: dto.email.toLowerCase(),
+        username: dto.username,
+        passwordHash,
+        role,
+        status: 'ACTIVE',
+        approvedById: adminId,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        createdAt: true,
       },
     });
   }

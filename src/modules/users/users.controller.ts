@@ -2,11 +2,12 @@ import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/co
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import {
-  type AuthUser,
-  CurrentUser,
+    type AuthUser,
+    CurrentUser,
 } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UploaderRequestsService } from './uploader-requests.service';
@@ -26,6 +27,15 @@ export class UsersController {
   @Get()
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post()
+  createByAdmin(
+    @Body() dto: CreateUserByAdminDto,
+    @CurrentUser() admin: AuthUser,
+  ) {
+    return this.usersService.createByAdmin(dto, admin.id);
   }
 
   @Post('me/uploader-request')
