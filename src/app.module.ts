@@ -7,8 +7,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import configuration from './config/configuration';
 import { HealthController } from './health/health.controller';
+import { AdminModule } from './modules/admin/admin.module';
 import { AdsModule } from './modules/ads/ads.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AnimeModule } from './modules/anime/anime.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JikanModule } from './modules/jikan/jikan.module';
@@ -48,8 +48,8 @@ import { WebsocketModule } from './websocket/websocket.module';
     ReportsModule,
     UploadModule,
     ModerationModule,
-    AnalyticsModule,
     AdsModule,
+    AdminModule,
     WebsocketModule,
   ],
   controllers: [HealthController],

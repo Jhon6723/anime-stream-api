@@ -199,8 +199,6 @@ model VideoSource {
   downloadUrl       String?           @map("download_url")
   remoteTrackingId  String?           @map("remote_tracking_id")
   status            VideoSourceStatus @default(UPLOADING)
-  viewsCount        BigInt            @default(0) @map("views_count")
-  earningsEstimated Decimal           @default(0) @map("earnings_estimated") @db.Decimal(12, 4)
   isActive          Boolean           @default(true) @map("is_active")
 
   uploadJobs UploadJob[]
@@ -314,4 +312,24 @@ model BrokenLinkReport {
   @@index([videoSourceId])
   @@index([ipAddress])
   @@map("broken_link_reports")
+}
+
+enum SystemConfigCategory {
+  SEO
+  MODERATION
+  GENERAL
+}
+
+model SystemConfig {
+  id          String               @id @default(uuid())
+  key         String               @unique
+  value       String
+  isSensitive Boolean              @default(false) @map("is_sensitive")
+  category    SystemConfigCategory @default(GENERAL)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("system_configs")
 }

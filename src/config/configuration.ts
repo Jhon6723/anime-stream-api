@@ -22,10 +22,14 @@ export interface AppConfig {
   };
   providers: {
     doodstream: { apiKey?: string; baseUrl: string };
-    mixdrop: { apiKey?: string; email?: string; baseUrl: string; uploadBaseUrl: string };
+    mixdrop: {
+      apiKey?: string;
+      email?: string;
+      baseUrl: string;
+      uploadBaseUrl: string;
+    };
     streamtape: { login?: string; apiKey?: string; baseUrl: string };
   };
-  syncStatsCron: string;
 }
 
 export default (): AppConfig => ({
@@ -53,13 +57,14 @@ export default (): AppConfig => ({
   providers: {
     doodstream: {
       apiKey: process.env.DOODSTREAM_API_KEY,
-      baseUrl: process.env.DOODSTREAM_BASE_URL ?? 'https://doodapi.com/api',
+      baseUrl: process.env.DOODSTREAM_BASE_URL ?? 'https://doodapi.co/api',
     },
     mixdrop: {
       apiKey: process.env.MIXDROP_API_KEY,
       email: process.env.MIXDROP_EMAIL,
       baseUrl: process.env.MIXDROP_BASE_URL ?? 'https://api.mixdrop.ag',
-      uploadBaseUrl: process.env.MIXDROP_UPLOAD_BASE_URL ?? 'https://ul.mixdrop.ag/api',
+      uploadBaseUrl:
+        process.env.MIXDROP_UPLOAD_BASE_URL ?? 'https://ul.mixdrop.ag/api',
     },
     streamtape: {
       login: process.env.STREAMTAPE_LOGIN,
@@ -67,5 +72,4 @@ export default (): AppConfig => ({
       baseUrl: process.env.STREAMTAPE_BASE_URL ?? 'https://api.streamtape.com',
     },
   },
-  syncStatsCron: process.env.SYNC_STATS_CRON ?? '0 */6 * * *',
 });
