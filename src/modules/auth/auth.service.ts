@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   ForbiddenException,
   Injectable,
   UnauthorizedException,
@@ -12,9 +11,6 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-
-const BCRYPT_ROUNDS = 12;
 
 export interface AuthUserResponse {
   id: string;
@@ -38,26 +34,6 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly redis: RedisService,
   ) {}
-
-  async register(dto: RegisterDto): Promise<AuthResponse> {
-    const existing = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email: dto.email.toLowerCase() }, { username: dto.username }],
-      },
-    });
-    if (existing) {
-      throw new ConflictException('Email or username already in use');
-    }
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email.toLowerCase(),
-        username: dto.username,
-        passwordHash,
-      },
-    });
-    return this.issueTokens(user);
-  }
 
   async login(dto: LoginDto): Promise<AuthResponse> {
     const user = await this.prisma.user.findUnique({

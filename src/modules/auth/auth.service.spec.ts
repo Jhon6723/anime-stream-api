@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserStatus } from '@prisma/client';
@@ -23,7 +19,7 @@ const mockUser = {
   email: 'test@test.com',
   username: 'testuser',
   passwordHash: '$2b$12$hashedpassword',
-  role: 'USER',
+  role: 'UPLOADER',
   status: UserStatus.ACTIVE,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -96,37 +92,6 @@ describe('AuthService', () => {
       config as unknown as ConfigService,
       redis as unknown as RedisService,
     );
-  });
-
-  describe('register', () => {
-    it('creates a user and returns tokens', async () => {
-      prisma.user.findFirst.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue(mockUser);
-
-      const result = await service.register({
-        email: 'test@test.com',
-        username: 'testuser',
-        password: 'password123',
-      });
-
-      expect(result.accessToken).toBeDefined();
-      expect(result.refreshToken).toBeDefined();
-      expect(result.user).toBeDefined();
-      expect(result.user.id).toBe('user-1');
-      expect(prisma.user.create).toHaveBeenCalledOnce();
-    });
-
-    it('throws ConflictException if email or username exists', async () => {
-      prisma.user.findFirst.mockResolvedValue(mockUser);
-
-      await expect(
-        service.register({
-          email: 'test@test.com',
-          username: 'testuser',
-          password: 'password123',
-        }),
-      ).rejects.toThrow(ConflictException);
-    });
   });
 
   describe('login', () => {

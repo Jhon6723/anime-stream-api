@@ -73,31 +73,6 @@ export class UsersService {
     });
   }
 
-  async approveUploader(id: string, adminId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    if (user.role === UserRole.UPLOADER) {
-      throw new BadRequestException('User is already an uploader');
-    }
-    return this.prisma.user.update({
-      where: { id },
-      data: {
-        role: UserRole.UPLOADER,
-        approvedById: adminId,
-      },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        status: true,
-        approvedById: true,
-      },
-    });
-  }
-
   async updateStatus(id: string, dto: UpdateUserStatusDto, adminId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {

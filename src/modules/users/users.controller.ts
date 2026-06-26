@@ -18,7 +18,6 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
-import { UploaderRequestsService } from './uploader-requests.service';
 import { UsersService } from './users.service';
 
 @ApiTags('users')
@@ -26,10 +25,7 @@ import { UsersService } from './users.service';
 @UseGuards(RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly uploaderRequestsService: UploaderRequestsService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Roles(UserRole.ADMIN)
   @Get()
@@ -46,35 +42,6 @@ export class UsersController {
     return this.usersService.createByAdmin(dto, admin.id);
   }
 
-  @Post('me/uploader-request')
-  createUploaderRequest(@CurrentUser() user: AuthUser) {
-    return this.uploaderRequestsService.create(user.id);
-  }
-
-  @Roles(UserRole.ADMIN)
-  @Get('uploader-requests')
-  listUploaderRequests() {
-    return this.uploaderRequestsService.findPending();
-  }
-
-  @Roles(UserRole.ADMIN)
-  @Post('uploader-requests/:id/approve')
-  approveUploaderRequest(
-    @Param('id') id: string,
-    @CurrentUser() admin: AuthUser,
-  ) {
-    return this.uploaderRequestsService.approve(id, admin.id);
-  }
-
-  @Roles(UserRole.ADMIN)
-  @Post('uploader-requests/:id/reject')
-  rejectUploaderRequest(
-    @Param('id') id: string,
-    @CurrentUser() admin: AuthUser,
-  ) {
-    return this.uploaderRequestsService.reject(id, admin.id);
-  }
-
   @Roles(UserRole.ADMIN)
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -89,12 +56,6 @@ export class UsersController {
     @CurrentUser() admin: AuthUser,
   ) {
     return this.usersService.updateRole(id, dto, admin.id);
-  }
-
-  @Roles(UserRole.ADMIN)
-  @Post(':id/approve-uploader')
-  approveUploader(@Param('id') id: string, @CurrentUser() admin: AuthUser) {
-    return this.usersService.approveUploader(id, admin.id);
   }
 
   @Roles(UserRole.ADMIN)

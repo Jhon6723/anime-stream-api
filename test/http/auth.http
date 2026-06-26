@@ -1,0 +1,53 @@
+### Variables (shared across all .http files)
+@baseUrl = http://localhost:4000/api
+@accessToken = 
+@refreshToken = 
+
+### Login admin
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "jhonestebanrivera66@gmail.com",
+  "password": "O4CpUooi+VS3ElUGBCe84A=="
+}
+
+### Login moderator
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "moderator@example.com",
+  "password": "Moderator123!"
+}
+
+### Login uploader
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "uploader@example.com",
+  "password": "Uploader123!"
+}
+
+### Refresh admin
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Me
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}

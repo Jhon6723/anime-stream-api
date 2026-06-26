@@ -19,7 +19,7 @@ const mockUser = {
   email: 'test@test.com',
   username: 'testuser',
   passwordHash: 'hashed',
-  role: UserRole.USER,
+  role: UserRole.UPLOADER,
   status: UserStatus.ACTIVE,
   approvedById: null,
   createdAt: new Date(),
@@ -118,46 +118,6 @@ describe('UsersService', () => {
       await expect(
         service.updateRole('user-1', { role: UserRole.ADMIN }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
-    });
-  });
-
-  describe('approveUploader', () => {
-    it('approves a user as uploader and sets approvedById', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockResolvedValue({
-        ...mockUser,
-        role: UserRole.UPLOADER,
-        approvedById: 'admin-1',
-      });
-
-      const result = await service.approveUploader('user-1', 'admin-1');
-
-      expect(result.role).toBe(UserRole.UPLOADER);
-      expect(result.approvedById).toBe('admin-1');
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { role: UserRole.UPLOADER, approvedById: 'admin-1' },
-        select: expect.any(Object),
-      });
-    });
-
-    it('throws BadRequestException if already uploader', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        ...mockUser,
-        role: UserRole.UPLOADER,
-      });
-
-      await expect(
-        service.approveUploader('user-1', 'admin-1'),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('throws NotFoundException for non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-
-      await expect(service.approveUploader('nope', 'admin-1')).rejects.toThrow(
-        NotFoundException,
-      );
     });
   });
 
