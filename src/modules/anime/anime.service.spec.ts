@@ -76,7 +76,8 @@ describe('AnimeService', () => {
       $transaction: vi.fn(),
     };
 
-    service = new AnimeService(prisma as unknown as PrismaService);
+    const syncService = { syncPendingSources: vi.fn() };
+    service = new AnimeService(prisma as unknown as PrismaService, syncService as any);
   });
 
   describe('findCatalog', () => {

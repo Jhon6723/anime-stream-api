@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModerationStatus, Prisma, VideoSourceStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { VideoSourceSyncService } from '../upload/video-source-sync.service';
 
 export interface CatalogQuery {
   q?: string;
@@ -16,7 +17,10 @@ type SortOption = 'recent' | 'most_viewed' | 'top_rated';
 
 @Injectable()
 export class AnimeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly syncService: VideoSourceSyncService,
+  ) {}
 
   async findCatalog(query: CatalogQuery) {
     const page = query.page ?? 1;
@@ -97,6 +101,84 @@ export class AnimeService {
       throw new NotFoundException('Anime not found');
     }
     return anime;
+  }
+
+  async findEpisodesForUpload(slug: string, page = 1, pageSize = 50) {
+    const anime = await this.prisma.anime.findFirst({
+      where: { slug },
+      select: { id: true, title: true, slug: true, totalEpisodes: true },
+    });
+    if (!anime) {
+      throw new NotFoundException('Anime not found');
+    }
+
+    const skip = (page - 1) * pageSize;
+
+    const [episodes, total] = await this.prisma.$transaction([
+      this.prisma.episode.findMany({
+        where: { animeId: anime.id },
+        orderBy: { episodeNumber: 'asc' },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          episodeNumber: true,
+          title: true,
+          isFiller: true,
+          moderationStatus: true,
+          isEnabled: true,
+          videoSources: {
+            where: { status: { not: VideoSourceStatus.DELETED } },
+            select: {
+              id: true,
+              provider: true,
+              status: true,
+              remoteTrackingId: true,
+            },
+          },
+        },
+      }),
+      this.prisma.episode.count({ where: { animeId: anime.id } }),
+    ]);
+
+    const allSources = episodes.flatMap((ep) => ep.videoSources);
+    await this.syncService.syncPendingSources(allSources);
+
+    const refreshed = await this.prisma.episode.findMany({
+      where: { id: { in: episodes.map((ep) => ep.id) } },
+      orderBy: { episodeNumber: 'asc' },
+      select: {
+        id: true,
+        episodeNumber: true,
+        title: true,
+        isFiller: true,
+        moderationStatus: true,
+        isEnabled: true,
+        videoSources: {
+          where: { status: { not: VideoSourceStatus.DELETED } },
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      ...anime,
+      episodes: refreshed.map((ep) => ({
+        ...ep,
+        hasVideo: ep.videoSources.length > 0,
+        providers: ep.videoSources.map((vs) => vs.provider),
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 
   async findEpisode(slug: string, episodeNumber: number) {
