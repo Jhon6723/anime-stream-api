@@ -1,6 +1,9 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { AnimeService } from './anime.service';
 
 @ApiTags('anime')
@@ -34,6 +37,20 @@ export class AnimeController {
   @Get(':slug')
   findBySlug(@Param('slug') slug: string) {
     return this.animeService.findBySlug(slug);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.UPLOADER)
+  @Get(':slug/episodes')
+  findEpisodesForUpload(
+    @Param('slug') slug: string,
+    @Query('page') pageStr?: string,
+    @Query('pageSize') pageSizeStr?: string,
+  ) {
+    const page = pageStr ? parseInt(pageStr, 10) : 1;
+    const pageSize = Math.min(pageSizeStr ? parseInt(pageSizeStr, 10) : 50, 100);
+    return this.animeService.findEpisodesForUpload(slug, page, pageSize);
   }
 
   @Public()
