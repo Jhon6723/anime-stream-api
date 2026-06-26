@@ -1,5 +1,9 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Provider, UploadSourceType } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -37,7 +41,9 @@ export class UploadService {
     }
 
     if (dto.sourceType === UploadSourceType.REMOTE_URL && !dto.sourceUrl) {
-      throw new BadRequestException('sourceUrl is required for REMOTE_URL uploads');
+      throw new BadRequestException(
+        'sourceUrl is required for REMOTE_URL uploads',
+      );
     }
 
     await this.checkDuplicate(dto.episodeId, dto.provider, dto.sourceUrl);
@@ -135,7 +141,9 @@ export class UploadService {
 
       const anime = await this.prisma.anime.findUnique({
         where: { slug: animeSlug },
-        include: { episodes: { where: { episodeNumber: parseInt(episodeNumber, 10) } } },
+        include: {
+          episodes: { where: { episodeNumber: parseInt(episodeNumber, 10) } },
+        },
       });
 
       if (!anime || anime.episodes.length === 0) {
@@ -187,8 +195,22 @@ export class UploadService {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        episode: { select: { id: true, episodeNumber: true, anime: { select: { title: true, slug: true } } } },
-        videoSource: { select: { id: true, provider: true, status: true, embedUrl: true, remoteTrackingId: true } },
+        episode: {
+          select: {
+            id: true,
+            episodeNumber: true,
+            anime: { select: { title: true, slug: true } },
+          },
+        },
+        videoSource: {
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+            embedUrl: true,
+            remoteTrackingId: true,
+          },
+        },
       },
     });
 
@@ -204,8 +226,16 @@ export class UploadService {
         orderBy: { createdAt: 'desc' },
         take: 100,
         include: {
-          episode: { select: { id: true, episodeNumber: true, anime: { select: { title: true, slug: true } } } },
-          videoSource: { select: { id: true, provider: true, status: true, embedUrl: true } },
+          episode: {
+            select: {
+              id: true,
+              episodeNumber: true,
+              anime: { select: { title: true, slug: true } },
+            },
+          },
+          videoSource: {
+            select: { id: true, provider: true, status: true, embedUrl: true },
+          },
         },
       });
     }
@@ -217,20 +247,38 @@ export class UploadService {
     return this.prisma.uploadJob.findFirst({
       where: { id: jobId, ...(userId ? { initiatedById: userId } : {}) },
       include: {
-        episode: { select: { id: true, episodeNumber: true, anime: { select: { title: true, slug: true } } } },
-        videoSource: { select: { id: true, provider: true, status: true, embedUrl: true, remoteTrackingId: true } },
+        episode: {
+          select: {
+            id: true,
+            episodeNumber: true,
+            anime: { select: { title: true, slug: true } },
+          },
+        },
+        videoSource: {
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+            embedUrl: true,
+            remoteTrackingId: true,
+          },
+        },
       },
     });
   }
 
   async enqueue(uploadJobId: string): Promise<void> {
-    await this.uploadQueue.add('process-upload', { uploadJobId }, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5_000,
+    await this.uploadQueue.add(
+      'process-upload',
+      { uploadJobId },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5_000,
+        },
       },
-    });
+    );
   }
 
   private async checkDuplicate(

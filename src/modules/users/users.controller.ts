@@ -1,9 +1,17 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import {
-    type AuthUser,
-    CurrentUser,
+  type AuthUser,
+  CurrentUser,
 } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -85,10 +93,7 @@ export class UsersController {
 
   @Roles(UserRole.ADMIN)
   @Post(':id/approve-uploader')
-  approveUploader(
-    @Param('id') id: string,
-    @CurrentUser() admin: AuthUser,
-  ) {
+  approveUploader(@Param('id') id: string, @CurrentUser() admin: AuthUser) {
     return this.usersService.approveUploader(id, admin.id);
   }
 

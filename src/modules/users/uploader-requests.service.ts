@@ -26,7 +26,9 @@ export class UploaderRequestsService {
       where: { userId, status: UploaderRequestStatus.PENDING },
     });
     if (existing) {
-      throw new ConflictException('You already have a pending uploader request');
+      throw new ConflictException(
+        'You already have a pending uploader request',
+      );
     }
 
     return this.prisma.uploaderRequest.create({

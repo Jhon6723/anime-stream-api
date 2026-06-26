@@ -1,4 +1,10 @@
-import { IsArray, IsEnum, IsString, IsUUID, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 import { Provider } from '@prisma/client';
 import { Type } from 'class-transformer';
 

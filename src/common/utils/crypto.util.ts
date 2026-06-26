@@ -1,4 +1,9 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -29,7 +34,10 @@ export function decrypt(ciphertext: string, encryptionKey: string): string {
 
   const salt = buf.subarray(0, SALT_LENGTH);
   const iv = buf.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-  const tag = buf.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+  const tag = buf.subarray(
+    SALT_LENGTH + IV_LENGTH,
+    SALT_LENGTH + IV_LENGTH + TAG_LENGTH,
+  );
   const encrypted = buf.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
 
   const key = deriveKey(encryptionKey, salt);
@@ -37,8 +45,7 @@ export function decrypt(ciphertext: string, encryptionKey: string): string {
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
 
-  return Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]).toString('utf8');
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString(
+    'utf8',
+  );
 }

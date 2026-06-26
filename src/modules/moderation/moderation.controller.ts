@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -37,7 +45,12 @@ export class ModerationController {
     @Body() dto: ModerationActionDto,
     @CurrentUser() user: { id: string },
   ) {
-    return this.moderationService.approve(episodeId, user.id, dto.reason, dto.notes);
+    return this.moderationService.approve(
+      episodeId,
+      user.id,
+      dto.reason,
+      dto.notes,
+    );
   }
 
   @Post('episodes/:id/warn')
@@ -46,7 +59,12 @@ export class ModerationController {
     @Body() dto: ModerationActionDto,
     @CurrentUser() user: { id: string },
   ) {
-    return this.moderationService.warn(episodeId, user.id, dto.reason, dto.notes);
+    return this.moderationService.warn(
+      episodeId,
+      user.id,
+      dto.reason,
+      dto.notes,
+    );
   }
 
   @Post('episodes/:id/disable')
@@ -55,7 +73,12 @@ export class ModerationController {
     @Body() dto: ModerationActionDto,
     @CurrentUser() user: { id: string },
   ) {
-    return this.moderationService.disable(episodeId, user.id, dto.reason, dto.notes);
+    return this.moderationService.disable(
+      episodeId,
+      user.id,
+      dto.reason,
+      dto.notes,
+    );
   }
 
   @Post('episodes/:id/enable')
@@ -64,6 +87,11 @@ export class ModerationController {
     @Body() dto: ModerationActionDto,
     @CurrentUser() user: { id: string },
   ) {
-    return this.moderationService.enable(episodeId, user.id, dto.reason, dto.notes);
+    return this.moderationService.enable(
+      episodeId,
+      user.id,
+      dto.reason,
+      dto.notes,
+    );
   }
 }

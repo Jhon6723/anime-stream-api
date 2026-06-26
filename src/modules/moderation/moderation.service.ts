@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ModerationAction, ModerationStatus, VideoSourceStatus } from '@prisma/client';
+import {
+  ModerationAction,
+  ModerationStatus,
+  VideoSourceStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventsGateway } from '../../websocket/events.gateway';
 import { VideoSourceSyncService } from '../upload/video-source-sync.service';
@@ -28,7 +32,13 @@ export class ModerationService {
           anime: { select: { title: true, slug: true } },
           videoSources: {
             where: { status: { not: VideoSourceStatus.DELETED } },
-            select: { id: true, provider: true, status: true, embedUrl: true, remoteTrackingId: true },
+            select: {
+              id: true,
+              provider: true,
+              status: true,
+              embedUrl: true,
+              remoteTrackingId: true,
+            },
           },
         },
         skip,
@@ -72,12 +82,23 @@ export class ModerationService {
       take: 200,
       include: {
         moderator: { select: { id: true, username: true } },
-        episode: { select: { id: true, episodeNumber: true, anime: { select: { title: true, slug: true } } } },
+        episode: {
+          select: {
+            id: true,
+            episodeNumber: true,
+            anime: { select: { title: true, slug: true } },
+          },
+        },
       },
     });
   }
 
-  async approve(episodeId: string, moderatorId: string, reason: string, notes?: string) {
+  async approve(
+    episodeId: string,
+    moderatorId: string,
+    reason: string,
+    notes?: string,
+  ) {
     const episode = await this.findEpisode(episodeId);
 
     const [updated] = await this.prisma.$transaction([
@@ -108,7 +129,12 @@ export class ModerationService {
     return updated;
   }
 
-  async warn(episodeId: string, moderatorId: string, reason: string, notes?: string) {
+  async warn(
+    episodeId: string,
+    moderatorId: string,
+    reason: string,
+    notes?: string,
+  ) {
     const episode = await this.findEpisode(episodeId);
 
     const [updated] = await this.prisma.$transaction([
@@ -139,7 +165,12 @@ export class ModerationService {
     return updated;
   }
 
-  async disable(episodeId: string, moderatorId: string, reason: string, notes?: string) {
+  async disable(
+    episodeId: string,
+    moderatorId: string,
+    reason: string,
+    notes?: string,
+  ) {
     const episode = await this.findEpisode(episodeId);
 
     const [updated] = await this.prisma.$transaction([
@@ -170,7 +201,12 @@ export class ModerationService {
     return updated;
   }
 
-  async enable(episodeId: string, moderatorId: string, reason: string, notes?: string) {
+  async enable(
+    episodeId: string,
+    moderatorId: string,
+    reason: string,
+    notes?: string,
+  ) {
     const episode = await this.findEpisode(episodeId);
 
     const [updated] = await this.prisma.$transaction([

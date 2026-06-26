@@ -1,8 +1,4 @@
-import {
-    Injectable,
-    Logger,
-    NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { VideoSourceStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -17,10 +13,7 @@ export class ReportsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    this.threshold = parseInt(
-      process.env.BROKEN_LINK_THRESHOLD ?? '3',
-      10,
-    );
+    this.threshold = parseInt(process.env.BROKEN_LINK_THRESHOLD ?? '3', 10);
     this.adminEmail = process.env.ADMIN_EMAIL ?? 'admin@animestream.local';
   }
 
@@ -31,7 +24,17 @@ export class ReportsService {
   ) {
     const videoSource = await this.prisma.videoSource.findUnique({
       where: { id: videoSourceId },
-      select: { id: true, status: true, episode: { select: { anime: { select: { title: true } }, episodeNumber: true, title: true } } },
+      select: {
+        id: true,
+        status: true,
+        episode: {
+          select: {
+            anime: { select: { title: true } },
+            episodeNumber: true,
+            title: true,
+          },
+        },
+      },
     });
 
     if (!videoSource) {
@@ -50,7 +53,10 @@ export class ReportsService {
       where: { videoSourceId },
     });
 
-    if (reportCount >= this.threshold && videoSource.status !== VideoSourceStatus.ERROR) {
+    if (
+      reportCount >= this.threshold &&
+      videoSource.status !== VideoSourceStatus.ERROR
+    ) {
       await this.prisma.videoSource.update({
         where: { id: videoSourceId },
         data: { status: VideoSourceStatus.ERROR },
@@ -71,15 +77,20 @@ export class ReportsService {
   private notifyAdmin(
     videoSourceId: string,
     reportCount: number,
-    episode: { anime: { title: string }; episodeNumber: number; title: string | null } | null,
+    episode: {
+      anime: { title: string };
+      episodeNumber: number;
+      title: string | null;
+    } | null,
   ) {
     const animeTitle = episode?.anime?.title ?? 'Unknown';
-    const episodeTitle = episode?.title ?? `Episode ${episode?.episodeNumber ?? '?'}`;
+    const episodeTitle =
+      episode?.title ?? `Episode ${episode?.episodeNumber ?? '?'}`;
 
     this.logger.log(
       `[Broken Link Report] Anime: ${animeTitle}, Episode: ${episodeTitle}, ` +
-      `VideoSource: ${videoSourceId}, Reports: ${reportCount}, ` +
-      `Notify: ${this.adminEmail}`,
+        `VideoSource: ${videoSourceId}, Reports: ${reportCount}, ` +
+        `Notify: ${this.adminEmail}`,
     );
   }
 

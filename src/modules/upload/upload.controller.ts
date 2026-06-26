@@ -102,7 +102,10 @@ export class UploadController {
   }
 
   @Get('jobs/:id')
-  getJob(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+  getJob(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
     if (user.role === UserRole.ADMIN) {
       return this.uploadService.getJob(id);
     }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -58,7 +62,9 @@ export class ProviderAccountService {
   }
 
   async update(id: string, dto: UpdateProviderAccountDto) {
-    const existing = await this.prisma.providerAccount.findUnique({ where: { id } });
+    const existing = await this.prisma.providerAccount.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException(`ProviderAccount ${id} not found`);
     }
@@ -87,7 +93,9 @@ export class ProviderAccountService {
   }
 
   async remove(id: string) {
-    const existing = await this.prisma.providerAccount.findUnique({ where: { id } });
+    const existing = await this.prisma.providerAccount.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException(`ProviderAccount ${id} not found`);
     }
@@ -103,7 +111,9 @@ export class ProviderAccountService {
     });
 
     if (!account) {
-      throw new BadRequestException(`No active ProviderAccount for ${provider}`);
+      throw new BadRequestException(
+        `No active ProviderAccount for ${provider}`,
+      );
     }
 
     return decrypt(account.apiKey, this.encryptionKey);

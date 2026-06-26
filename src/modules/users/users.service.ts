@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -117,10 +122,7 @@ export class UsersService {
   async createByAdmin(dto: CreateUserByAdminDto, adminId: string) {
     const existing = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email: dto.email.toLowerCase() },
-          { username: dto.username },
-        ],
+        OR: [{ email: dto.email.toLowerCase() }, { username: dto.username }],
       },
     });
     if (existing) {
