@@ -1,8 +1,8 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YTBhMmZhZS1mNWIyLTQ2NTEtODBlZi0xODQzNzIxNTdlZDciLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJyb2xlIjoiVVBMT0FERVIiLCJpYXQiOjE3ODI0NDIwOTEsImV4cCI6MTc4MjQ0Mjk5MX0.RmMeDDrM9SNU_Um1Cu8su4NT_4knnhgISJxUCxajk4w
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNDgyOTYyLCJleHAiOjE3ODI0ODM4NjJ9.FXi8IuFTFTF30pp1zFL3F8j-a1aqK8bxQCL_KlEUJuA
 
-@episodeId = 678b7576-a345-4a71-abc0-acc360501d06
+@episodeId = 14d5f0ab-e0e4-4592-8130-dfba579e62a1
 
 ### ═══════════════════════════════════════════════════
 ### REMOTE UPLOAD — POST /uploads (por provider)
@@ -16,7 +16,7 @@ Content-Type: application/json
   "episodeId": "{{episodeId}}",
   "provider": "DOODSTREAM",
   "sourceType": "REMOTE_URL",
-  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/N/Naruto/Season%201/Episode%204//04%20Pass%20or%20Fail%20Survival%20Test.mp4"
+  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/T/Tensei%20Shitara%20Slime%20Datta%20Ken/Season%201/Episode%201//01%20The%20Storm%20Dragon,%20Veldora.mp4"
 }
 
 ### Remote upload — MixDrop
@@ -28,7 +28,7 @@ Content-Type: application/json
   "episodeId": "{{episodeId}}",
   "provider": "MIXDROP",
   "sourceType": "REMOTE_URL",
-  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/N/Naruto/Season%201/Episode%204//04%20Pass%20or%20Fail%20Survival%20Test.mp4"
+  "sourceUrl": "https://www.cartoonsarea.cc/USER-DATA/Cartoonsarea/Japines%20Language/T/Tensei%20Shitara%20Slime%20Datta%20Ken/Season%201/Episode%201//01%20The%20Storm%20Dragon,%20Veldora.mp4"
 }
 
 ### Remote upload — Streamtape
