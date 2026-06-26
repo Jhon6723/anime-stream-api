@@ -2,6 +2,7 @@ export interface AppConfig {
   port: number;
   nodeEnv: string;
   corsOrigin: string;
+  encryptionKey: string;
   databaseUrl: string;
   redis: {
     host: string;
@@ -21,7 +22,7 @@ export interface AppConfig {
   };
   providers: {
     doodstream: { apiKey?: string; baseUrl: string };
-    mixdrop: { apiKey?: string; email?: string; baseUrl: string };
+    mixdrop: { apiKey?: string; email?: string; baseUrl: string; uploadBaseUrl: string };
     streamtape: { login?: string; apiKey?: string; baseUrl: string };
   };
   syncStatsCron: string;
@@ -31,6 +32,7 @@ export default (): AppConfig => ({
   port: parseInt(process.env.PORT ?? '4000', 10),
   nodeEnv: process.env.NODE_ENV ?? 'development',
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+  encryptionKey: process.env.ENCRYPTION_KEY ?? 'dev-encryption-key-change-me',
   databaseUrl: process.env.DATABASE_URL ?? '',
   redis: {
     host: process.env.REDIS_HOST ?? 'localhost',
@@ -56,7 +58,8 @@ export default (): AppConfig => ({
     mixdrop: {
       apiKey: process.env.MIXDROP_API_KEY,
       email: process.env.MIXDROP_EMAIL,
-      baseUrl: process.env.MIXDROP_BASE_URL ?? 'https://api.mixdrop.co/api',
+      baseUrl: process.env.MIXDROP_BASE_URL ?? 'https://api.mixdrop.ag',
+      uploadBaseUrl: process.env.MIXDROP_UPLOAD_BASE_URL ?? 'https://ul.mixdrop.ag/api',
     },
     streamtape: {
       login: process.env.STREAMTAPE_LOGIN,
