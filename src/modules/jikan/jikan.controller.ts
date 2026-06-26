@@ -1,4 +1,13 @@
-import { BadRequestException, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -14,15 +23,16 @@ export class JikanController {
   constructor(private readonly jikanService: JikanService) {}
 
   @Roles('UPLOADER', 'ADMIN', 'MODERATOR')
-  @Get('search')
-  search(
-    @Query('q') q: string,
-    @Query('page') pageStr?: string,
-    @Query('limit') limitStr?: string,
-  ) {
-    const page = pageStr ? parseInt(pageStr, 10) : 1;
-    const limit = limitStr ? parseInt(limitStr, 10) : 10;
-    return this.jikanService.search(q, page, limit);
+  @Post('search')
+  search(@Body() body: { query: string; page?: number; limit?: number }) {
+    if (!body.query || body.query.trim().length < 3) {
+      throw new BadRequestException(
+        'Search query must be at least 3 characters',
+      );
+    }
+    const page = body.page ?? 1;
+    const limit = body.limit ?? 10;
+    return this.jikanService.search(body.query, page, limit);
   }
 
   @Roles('UPLOADER', 'ADMIN', 'MODERATOR')
@@ -48,10 +58,7 @@ export class JikanController {
 
   @Roles('UPLOADER', 'ADMIN')
   @Post('import/:malId')
-  importAnime(
-    @Param('malId') malIdStr: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  importAnime(@Param('malId') malIdStr: string, @CurrentUser() user: AuthUser) {
     const malId = parseInt(malIdStr, 10);
     if (isNaN(malId) || malId < 1) {
       throw new BadRequestException('Invalid MAL ID');

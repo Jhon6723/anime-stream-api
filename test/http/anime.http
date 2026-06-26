@@ -1,6 +1,6 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YTBhMmZhZS1mNWIyLTQ2NTEtODBlZi0xODQzNzIxNTdlZDciLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJyb2xlIjoiVVBMT0FERVIiLCJpYXQiOjE3ODI0NDE0MjcsImV4cCI6MTc4MjQ0MjMyN30.NEmG7M2y9Lpt2tmxru1dZEvuVZbL9damoXOe6IY22Fc
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNDgyOTYyLCJleHAiOjE3ODI0ODM4NjJ9.FXi8IuFTFTF30pp1zFL3F8j-a1aqK8bxQCL_KlEUJuA
 
 ### ─── Home (Public) ───
 
@@ -9,17 +9,42 @@ GET {{baseUrl}}/home
 
 ### ─── Anime (Public) ───
 
-### Catalog
-GET {{baseUrl}}/anime
+### Catalog (default)
+POST {{baseUrl}}/anime/search
+Content-Type: application/json
+
+{}
 
 ### Catalog with search
-GET {{baseUrl}}/anime?q=naruto&page=1&pageSize=10
+POST {{baseUrl}}/anime/search
+Content-Type: application/json
+
+{
+  "q": "Tensei Shitara Slime",
+  "page": 1,
+  "pageSize": 10
+}
 
 ### Catalog with filters
-GET {{baseUrl}}/anime?genre=Action&status=ONGOING&type=TV&sort=recent
+POST {{baseUrl}}/anime/search
+Content-Type: application/json
+
+{
+  "genre": "Action",
+  "status": "ONGOING",
+  "type": "TV",
+  "sort": "recent"
+}
 
 ### Catalog sorted by most viewed
-GET {{baseUrl}}/anime?sort=most_viewed&page=1&pageSize=24
+POST {{baseUrl}}/anime/search
+Content-Type: application/json
+
+{
+  "sort": "most_viewed",
+  "page": 1,
+  "pageSize": 24
+}
 
 ### Anime by slug
 GET {{baseUrl}}/anime/naruto
@@ -27,7 +52,7 @@ GET {{baseUrl}}/anime/naruto
 ### ─── Episodes for Upload (UPLOADER, ADMIN) ───
 
 ### List episodes with upload status (paginated, 50 per page)
-GET {{baseUrl}}/anime/naruto/episodes?page=1&pageSize=50
+GET {{baseUrl}}/anime/that-time-i-got-reincarnated-as-a-slime/episodes?page=1&pageSize=50
 Authorization: Bearer {{accessToken}}
 
 ### List episodes page 2
