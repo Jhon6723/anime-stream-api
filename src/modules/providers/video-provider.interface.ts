@@ -21,12 +21,6 @@ export interface ProviderFileInfo {
   providerFileId: string;
   status: 'UPLOADING' | 'ENCODING' | 'READY' | 'ERROR' | 'DELETED';
   views?: number;
-  earnings?: number;
-}
-
-export interface ProviderAccountInfo {
-  balance?: number;
-  email?: string;
 }
 
 export interface PresignResult {
@@ -62,7 +56,11 @@ export interface VideoProvider {
    * Subir archivo desde un buffer en memoria (streaming proxy).
    * No toca disco. El server inyecta los secrets (api_key) y forwarda al provider.
    */
-  streamUpload?(fileBuffer: Buffer, fileName: string, apiKey: string): Promise<UploadResult>;
+  streamUpload?(
+    fileBuffer: Buffer,
+    fileName: string,
+    apiKey: string,
+  ): Promise<UploadResult>;
 
   /**
    * Obtener una URL temporal de upload (presign) para que el cliente
@@ -72,12 +70,14 @@ export interface VideoProvider {
   getUploadUrl?(apiKey: string): Promise<PresignResult>;
 
   remoteUpload(url: string, apiKey: string): Promise<RemoteUploadResult>;
-  checkRemoteUpload(trackingId: string, apiKey: string): Promise<RemoteUploadStatus>;
+  checkRemoteUpload(
+    trackingId: string,
+    apiKey: string,
+  ): Promise<RemoteUploadStatus>;
   getFileInfo(
     providerFileId: string,
     apiKey: string,
   ): Promise<ProviderFileInfo>;
   deleteFile(providerFileId: string, apiKey: string): Promise<void>;
   buildEmbedUrl(providerFileId: string): string;
-  getAccountInfo?(apiKey: string): Promise<ProviderAccountInfo>;
 }

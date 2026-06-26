@@ -2,26 +2,63 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-    ProviderAuthError,
-    ProviderNotFoundError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
+  ProviderAuthError,
+  ProviderNotFoundError,
+  ProviderRateLimitError,
+  ProviderUnavailableError,
+  getHttpErrorInfo,
 } from '../provider-errors';
 import {
-    PresignResult,
-    ProviderAccountInfo,
-    ProviderFileInfo,
-    RemoteUploadResult,
-    RemoteUploadStatus,
-    UploadResult,
-    VideoProvider
+  PresignResult,
+  ProviderFileInfo,
+  RemoteUploadResult,
+  RemoteUploadStatus,
+  UploadResult,
+  VideoProvider,
 } from '../video-provider.interface';
+
+interface DoodUploadServerResponse {
+  status: number;
+  result?: string;
+}
+
+interface DoodUploadedFile {
+  filecode: string;
+  download_url?: string;
+}
+
+interface DoodUploadResponse {
+  status: number;
+  result?: DoodUploadedFile[];
+}
+
+interface DoodRemoteUploadResponse {
+  status: number;
+  result?: string | { filecode: string };
+}
+
+interface DoodFileInfoResponse {
+  status: number;
+  result?: DoodFileInfoItem[];
+}
+
+interface DoodFileInfoItem {
+  filecode: string;
+  canplay?: number;
+  views?: string;
+}
+
+interface DoodDeleteResponse {
+  status: number;
+}
 
 /**
  * Adapter DoodStream. Ver spec 004-upload-doodstream.
- * API docs: https://doodapi.com/api
+ * API docs: https://doodstream.com/api-docs
  */
 @Injectable()
 export class DoodstreamAdapter implements VideoProvider {
@@ -39,25 +76,29 @@ export class DoodstreamAdapter implements VideoProvider {
   async uploadFile(filePath: string, apiKey: string): Promise<UploadResult> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/upload/server`, {
-          params: { key: apiKey },
-        }),
+        this.http.get<DoodUploadServerResponse>(
+          `${this.baseUrl}/upload/server`,
+          {
+            params: { key: apiKey },
+          },
+        ),
       );
 
       if (data.status !== 200 || !data.result) {
-        throw new ProviderUnavailableError('DOODSTREAM', 'Failed to get upload server');
+        throw new ProviderUnavailableError(
+          'DOODSTREAM',
+          'Failed to get upload server',
+        );
       }
 
       const uploadUrl = data.result;
 
-      const FormData = require('form-data');
-      const fs = require('fs');
       const form = new FormData();
       form.append('api_key', apiKey);
-      form.append('file', fs.createReadStream(filePath));
+      form.append('file', createReadStream(filePath));
 
       const uploadRes = await firstValueFrom(
-        this.http.post(uploadUrl, form, {
+        this.http.post<DoodUploadResponse>(uploadUrl, form, {
           headers: form.getHeaders(),
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
@@ -77,20 +118,26 @@ export class DoodstreamAdapter implements VideoProvider {
         downloadUrl: file.download_url,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
   async getUploadUrl(apiKey: string): Promise<PresignResult> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/upload/server`, {
-          params: { key: apiKey },
-        }),
+        this.http.get<DoodUploadServerResponse>(
+          `${this.baseUrl}/upload/server`,
+          {
+            params: { key: apiKey },
+          },
+        ),
       );
 
       if (data.status !== 200 || !data.result) {
-        throw new ProviderUnavailableError('DOODSTREAM', 'Failed to get upload server');
+        throw new ProviderUnavailableError(
+          'DOODSTREAM',
+          'Failed to get upload server',
+        );
       }
 
       return {
@@ -99,31 +146,40 @@ export class DoodstreamAdapter implements VideoProvider {
         requiresServerProxy: true,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
-  async streamUpload(fileBuffer: Buffer, fileName: string, apiKey: string): Promise<UploadResult> {
+  async streamUpload(
+    fileBuffer: Buffer,
+    fileName: string,
+    apiKey: string,
+  ): Promise<UploadResult> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/upload/server`, {
-          params: { key: apiKey },
-        }),
+        this.http.get<DoodUploadServerResponse>(
+          `${this.baseUrl}/upload/server`,
+          {
+            params: { key: apiKey },
+          },
+        ),
       );
 
       if (data.status !== 200 || !data.result) {
-        throw new ProviderUnavailableError('DOODSTREAM', 'Failed to get upload server');
+        throw new ProviderUnavailableError(
+          'DOODSTREAM',
+          'Failed to get upload server',
+        );
       }
 
       const uploadUrl = data.result;
 
-      const FormData = require('form-data');
       const form = new FormData();
       form.append('api_key', apiKey);
       form.append('file', fileBuffer, fileName);
 
       const uploadRes = await firstValueFrom(
-        this.http.post(uploadUrl, form, {
+        this.http.post<DoodUploadResponse>(uploadUrl, form, {
           headers: form.getHeaders(),
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
@@ -143,33 +199,45 @@ export class DoodstreamAdapter implements VideoProvider {
         downloadUrl: file.download_url,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
   async remoteUpload(url: string, apiKey: string): Promise<RemoteUploadResult> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/upload/url`, {
+        this.http.get<DoodRemoteUploadResponse>(`${this.baseUrl}/upload/url`, {
           params: { key: apiKey, url },
         }),
       );
 
       if (data.status !== 200 || !data.result) {
-        throw new ProviderUnavailableError('DOODSTREAM', 'Remote upload failed');
+        throw new ProviderUnavailableError(
+          'DOODSTREAM',
+          'Remote upload failed',
+        );
       }
 
-      return { trackingId: data.result.filecode ?? String(data.result) };
+      const result = data.result;
+      return {
+        trackingId: typeof result === 'string' ? result : result.filecode,
+      };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
-  async checkRemoteUpload(trackingId: string, apiKey: string): Promise<RemoteUploadStatus> {
+  async checkRemoteUpload(
+    trackingId: string,
+    apiKey: string,
+  ): Promise<RemoteUploadStatus> {
     try {
       const info = await this.getFileInfo(trackingId, apiKey);
       return {
-        status: info.status === 'READY' || info.status === 'ENCODING' ? 'COMPLETED' : 'PENDING',
+        status:
+          info.status === 'READY' || info.status === 'ENCODING'
+            ? 'COMPLETED'
+            : 'PENDING',
         providerFileId: info.providerFileId,
         embedUrl: this.buildEmbedUrl(info.providerFileId),
       };
@@ -178,69 +246,57 @@ export class DoodstreamAdapter implements VideoProvider {
     }
   }
 
-  async getFileInfo(providerFileId: string, apiKey: string): Promise<ProviderFileInfo> {
+  async getFileInfo(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<ProviderFileInfo> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/info`, {
+        this.http.get<DoodFileInfoResponse>(`${this.baseUrl}/file/info`, {
           params: { key: apiKey, file_code: providerFileId },
         }),
       );
 
       if (data.status !== 200 || !data.result?.[0]) {
-        throw new ProviderNotFoundError('DOODSTREAM', `File ${providerFileId} not found`);
+        throw new ProviderNotFoundError(
+          'DOODSTREAM',
+          `File ${providerFileId} not found`,
+        );
       }
 
       const file = data.result[0];
-      const canplay = parseInt(file.canplay ?? '0', 10);
+      const canplay = file.canplay ?? 0;
       return {
         providerFileId: file.filecode,
         status: canplay === 1 ? 'READY' : 'ENCODING',
         views: parseInt(file.views ?? '0', 10),
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
   async deleteFile(providerFileId: string, apiKey: string): Promise<void> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/delete`, {
+        this.http.get<DoodDeleteResponse>(`${this.baseUrl}/file/delete`, {
           params: { key: apiKey, file_code: providerFileId },
         }),
       );
 
       if (data.status !== 200) {
-        throw new ProviderNotFoundError('DOODSTREAM', `File ${providerFileId} not found or already deleted`);
+        throw new ProviderNotFoundError(
+          'DOODSTREAM',
+          `File ${providerFileId} not found or already deleted`,
+        );
       }
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
   buildEmbedUrl(providerFileId: string): string {
     return `https://dood.to/e/${providerFileId}`;
-  }
-
-  async getAccountInfo(apiKey: string): Promise<ProviderAccountInfo> {
-    try {
-      const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/account/info`, {
-          params: { key: apiKey },
-        }),
-      );
-
-      if (data.status !== 200 || !data.result) {
-        throw new ProviderAuthError('DOODSTREAM', 'Failed to get account info');
-      }
-
-      return {
-        balance: parseFloat(data.result.balance ?? '0'),
-        email: data.result.email,
-      };
-    } catch (err) {
-      throw this.handleError(err);
-    }
   }
 
   private mapStatus(status: string | number): ProviderFileInfo['status'] {
@@ -259,8 +315,8 @@ export class DoodstreamAdapter implements VideoProvider {
     }
   }
 
-  private handleError(err: any): never {
-    const status = err?.response?.status;
+  private handleError(err: unknown): never {
+    const { status, message } = getHttpErrorInfo(err);
     if (status === 401 || status === 403) {
       throw new ProviderAuthError('DOODSTREAM');
     }
@@ -270,11 +326,15 @@ export class DoodstreamAdapter implements VideoProvider {
     if (status === 404) {
       throw new ProviderNotFoundError('DOODSTREAM');
     }
-    if (err instanceof ProviderAuthError || err instanceof ProviderRateLimitError ||
-        err instanceof ProviderNotFoundError || err instanceof ProviderUnavailableError) {
+    if (
+      err instanceof ProviderAuthError ||
+      err instanceof ProviderRateLimitError ||
+      err instanceof ProviderNotFoundError ||
+      err instanceof ProviderUnavailableError
+    ) {
       throw err;
     }
-    this.logger.error(`DoodStream API error: ${err?.message}`);
-    throw new ProviderUnavailableError('DOODSTREAM', err?.message);
+    this.logger.error(`DoodStream API error: ${message}`);
+    throw new ProviderUnavailableError('DOODSTREAM', message);
   }
 }

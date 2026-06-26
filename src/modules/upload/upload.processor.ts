@@ -7,10 +7,11 @@ import { UPLOAD_QUEUE, UploadJobData } from '../../queue/queue.constants';
 import { EventsGateway } from '../../websocket/events.gateway';
 import { ProviderAccountService } from '../providers/provider-account.service';
 import {
-    ProviderRateLimitError,
-    ProviderUnavailableError,
+  ProviderRateLimitError,
+  ProviderUnavailableError,
 } from '../providers/provider-errors';
 import { ProviderRegistryService } from '../providers/provider-registry.service';
+import { UploadResult } from '../providers/video-provider.interface';
 
 const MAX_RETRIES = 3;
 
@@ -29,7 +30,9 @@ export class UploadProcessor extends WorkerHost {
 
   async process(job: Job<UploadJobData>): Promise<void> {
     const { uploadJobId } = job.data;
-    this.logger.log(`Processing upload job ${uploadJobId} (attempt ${job.attemptsMade + 1})`);
+    this.logger.log(
+      `Processing upload job ${uploadJobId} (attempt ${job.attemptsMade + 1})`,
+    );
 
     const uploadJob = await this.prisma.uploadJob.findUnique({
       where: { id: uploadJobId },
@@ -56,11 +59,16 @@ export class UploadProcessor extends WorkerHost {
       const adapter = this.registry.get(uploadJob.provider);
       const apiKey = await this.resolveApiKey(uploadJob.provider);
 
-      let result;
+      let result: UploadResult;
 
       if (uploadJob.sourceType === UploadSourceType.REMOTE_URL) {
-        const remoteResult = await adapter.remoteUpload(uploadJob.sourceUrl!, apiKey);
-        this.logger.log(`Remote upload enqueued for job ${uploadJobId}, tracking: ${remoteResult.trackingId}`);
+        const remoteResult = await adapter.remoteUpload(
+          uploadJob.sourceUrl!,
+          apiKey,
+        );
+        this.logger.log(
+          `Remote upload enqueued for job ${uploadJobId}, tracking: ${remoteResult.trackingId}`,
+        );
 
         const videoSource = await this.prisma.videoSource.upsert({
           where: {
@@ -127,7 +135,8 @@ export class UploadProcessor extends WorkerHost {
         this.events.emitUploadStatus(uploadJobId, 'COMPLETED');
       }
     } catch (err) {
-      const isRetryable = err instanceof ProviderRateLimitError ||
+      const isRetryable =
+        err instanceof ProviderRateLimitError ||
         err instanceof ProviderUnavailableError;
       const attemptsLeft = MAX_RETRIES - job.attemptsMade - 1;
 
@@ -144,7 +153,9 @@ export class UploadProcessor extends WorkerHost {
       }
 
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      this.logger.error(`UploadJob ${uploadJobId} failed permanently: ${errorMessage}`);
+      this.logger.error(
+        `UploadJob ${uploadJobId} failed permanently: ${errorMessage}`,
+      );
 
       await this.prisma.uploadJob.update({
         where: { id: uploadJobId },

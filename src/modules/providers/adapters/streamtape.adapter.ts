@@ -2,12 +2,15 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
   ProviderAuthError,
   ProviderNotFoundError,
   ProviderRateLimitError,
   ProviderUnavailableError,
+  getHttpErrorInfo,
 } from '../provider-errors';
 import {
   PresignResult,
@@ -15,8 +18,62 @@ import {
   RemoteUploadResult,
   RemoteUploadStatus,
   UploadResult,
-  VideoProvider
+  VideoProvider,
 } from '../video-provider.interface';
+
+interface StreamtapeUploadUrlResponse {
+  status: number;
+  result?: { url?: string };
+}
+
+interface StreamtapeUploadResponse {
+  status: number;
+  result?: { id?: string };
+}
+
+interface StreamtapeRemoteAddResponse {
+  status: number;
+  result?: { id?: string };
+}
+
+interface StreamtapeRemoteStatusResponse {
+  status: number;
+  result?:
+    | Record<string, StreamtapeRemoteStatusItem>
+    | StreamtapeRemoteStatusItem;
+}
+
+interface StreamtapeRemoteStatusItem {
+  id?: string;
+  status?: string;
+  remoteurl?: string;
+  url?: boolean | string;
+  extid?: boolean | string;
+}
+
+interface StreamtapeFileInfoResponse {
+  status: number;
+  result?: Record<string, StreamtapeFileInfoItem>;
+}
+
+interface StreamtapeFileInfoItem {
+  id: string;
+  converted: boolean;
+}
+
+interface StreamtapeFolderResponse {
+  status: number;
+  result?: { files?: StreamtapeFolderFile[] };
+}
+
+interface StreamtapeFolderFile {
+  linkid: string;
+  downloads?: number;
+}
+
+interface StreamtapeDeleteResponse {
+  status: number;
+}
 
 /**
  * Adapter Streamtape. Ver spec 006-upload-streamtape.
@@ -42,24 +99,25 @@ export class StreamtapeAdapter implements VideoProvider {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data: ulData } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/ul`, {
+        this.http.get<StreamtapeUploadUrlResponse>(`${this.baseUrl}/file/ul`, {
           params: { login, key: apiKey },
         }),
       );
 
       if (ulData.status !== 200 || !ulData.result?.url) {
-        throw new ProviderUnavailableError('STREAMTAPE', 'Failed to get upload URL');
+        throw new ProviderUnavailableError(
+          'STREAMTAPE',
+          'Failed to get upload URL',
+        );
       }
 
       const uploadUrl = ulData.result.url;
 
-      const FormData = require('form-data');
-      const fs = require('fs');
       const form = new FormData();
-      form.append('file', fs.createReadStream(filePath));
+      form.append('file', createReadStream(filePath));
 
       const uploadRes = await firstValueFrom(
-        this.http.post(uploadUrl, form, {
+        this.http.post<StreamtapeUploadResponse>(uploadUrl, form, {
           headers: form.getHeaders(),
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
@@ -77,32 +135,38 @@ export class StreamtapeAdapter implements VideoProvider {
         embedUrl: this.buildEmbedUrl(providerFileId),
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
-  async streamUpload(fileBuffer: Buffer, fileName: string, apiKey: string): Promise<UploadResult> {
+  async streamUpload(
+    fileBuffer: Buffer,
+    fileName: string,
+    apiKey: string,
+  ): Promise<UploadResult> {
     try {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data: ulData } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/ul`, {
+        this.http.get<StreamtapeUploadUrlResponse>(`${this.baseUrl}/file/ul`, {
           params: { login, key: apiKey },
         }),
       );
 
       if (ulData.status !== 200 || !ulData.result?.url) {
-        throw new ProviderUnavailableError('STREAMTAPE', 'Failed to get upload URL');
+        throw new ProviderUnavailableError(
+          'STREAMTAPE',
+          'Failed to get upload URL',
+        );
       }
 
       const uploadUrl = ulData.result.url;
 
-      const FormData = require('form-data');
       const form = new FormData();
       form.append('file', fileBuffer, fileName);
 
       const uploadRes = await firstValueFrom(
-        this.http.post(uploadUrl, form, {
+        this.http.post<StreamtapeUploadResponse>(uploadUrl, form, {
           headers: form.getHeaders(),
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
@@ -120,7 +184,7 @@ export class StreamtapeAdapter implements VideoProvider {
         embedUrl: this.buildEmbedUrl(providerFileId),
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -129,20 +193,23 @@ export class StreamtapeAdapter implements VideoProvider {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/ul`, {
+        this.http.get<StreamtapeUploadUrlResponse>(`${this.baseUrl}/file/ul`, {
           params: { login, key: apiKey },
         }),
       );
 
       if (data.status !== 200 || !data.result?.url) {
-        throw new ProviderUnavailableError('STREAMTAPE', 'Failed to get upload URL');
+        throw new ProviderUnavailableError(
+          'STREAMTAPE',
+          'Failed to get upload URL',
+        );
       }
 
       return {
         uploadUrl: data.result.url,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -151,36 +218,54 @@ export class StreamtapeAdapter implements VideoProvider {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/remotedl/add`, {
-          params: { login, key: apiKey, url },
-        }),
+        this.http.get<StreamtapeRemoteAddResponse>(
+          `${this.baseUrl}/remotedl/add`,
+          {
+            params: { login, key: apiKey, url },
+          },
+        ),
       );
 
       if (data.status !== 200 || !data.result?.id) {
-        throw new ProviderUnavailableError('STREAMTAPE', 'Remote upload failed');
+        throw new ProviderUnavailableError(
+          'STREAMTAPE',
+          'Remote upload failed',
+        );
       }
 
       return { trackingId: String(data.result.id) };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
-  async checkRemoteUpload(trackingId: string, apiKey: string): Promise<RemoteUploadStatus> {
+  async checkRemoteUpload(
+    trackingId: string,
+    apiKey: string,
+  ): Promise<RemoteUploadStatus> {
     try {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/remotedl/status`, {
-          params: { login, key: apiKey, id: trackingId },
-        }),
+        this.http.get<StreamtapeRemoteStatusResponse>(
+          `${this.baseUrl}/remotedl/status`,
+          {
+            params: { login, key: apiKey, id: trackingId },
+          },
+        ),
       );
 
       if (data.status !== 200 || !data.result) {
         return { status: 'PENDING' };
       }
 
-      const result = data.result[trackingId] ?? data.result;
+      const rawResult = data.result;
+      const result: StreamtapeRemoteStatusItem | undefined =
+        trackingId in rawResult
+          ? (rawResult as Record<string, StreamtapeRemoteStatusItem>)[
+              trackingId
+            ]
+          : rawResult;
       if (!result) {
         return { status: 'PENDING' };
       }
@@ -190,8 +275,14 @@ export class StreamtapeAdapter implements VideoProvider {
         return { status: 'FAILED' };
       }
 
-      if (status === 'complete' || status === 'completed' || status === 'finished') {
-        const fileId = result.linkid ?? result.id ?? trackingId;
+      if (
+        status === 'complete' ||
+        status === 'completed' ||
+        status === 'finished'
+      ) {
+        const extid =
+          typeof result.extid === 'string' ? result.extid : undefined;
+        const fileId = result.id ?? extid ?? trackingId;
         try {
           const info = await this.getFileInfo(fileId, apiKey);
           return {
@@ -214,28 +305,59 @@ export class StreamtapeAdapter implements VideoProvider {
     }
   }
 
-  async getFileInfo(providerFileId: string, apiKey: string): Promise<ProviderFileInfo> {
+  async getFileInfo(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<ProviderFileInfo> {
     try {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/info`, {
+        this.http.get<StreamtapeFileInfoResponse>(`${this.baseUrl}/file/info`, {
           params: { login, key: apiKey, file: providerFileId },
         }),
       );
 
       if (data.status !== 200 || !data.result?.[providerFileId]) {
-        throw new ProviderNotFoundError('STREAMTAPE', `File ${providerFileId} not found`);
+        throw new ProviderNotFoundError(
+          'STREAMTAPE',
+          `File ${providerFileId} not found`,
+        );
       }
 
       const file = data.result[providerFileId];
+
+      let views = 0;
+      try {
+        const { data: folderData } = await firstValueFrom(
+          this.http.get<StreamtapeFolderResponse>(
+            `${this.baseUrl}/file/listfolder`,
+            {
+              params: { login, key: apiKey },
+            },
+          ),
+        );
+        if (folderData.status === 200 && folderData.result?.files) {
+          const matched = folderData.result.files.find(
+            (f: StreamtapeFolderFile) => f.linkid === providerFileId,
+          );
+          if (matched) {
+            views = matched.downloads ?? 0;
+          }
+        }
+      } catch {
+        this.logger.warn(
+          `Failed to fetch listfolder for views lookup: ${providerFileId}`,
+        );
+      }
+
       return {
         providerFileId: file.id,
         status: this.mapStatus(file.converted),
-        views: 0,
+        views,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -244,16 +366,19 @@ export class StreamtapeAdapter implements VideoProvider {
       const login = this.config.get<string>('providers.streamtape.login')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/file/delete`, {
+        this.http.get<StreamtapeDeleteResponse>(`${this.baseUrl}/file/delete`, {
           params: { login, key: apiKey, file: providerFileId },
         }),
       );
 
       if (data.status !== 200) {
-        throw new ProviderNotFoundError('STREAMTAPE', `File ${providerFileId} not found or already deleted`);
+        throw new ProviderNotFoundError(
+          'STREAMTAPE',
+          `File ${providerFileId} not found or already deleted`,
+        );
       }
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -267,8 +392,8 @@ export class StreamtapeAdapter implements VideoProvider {
     return 'ERROR';
   }
 
-  private handleError(err: any): never {
-    const status = err?.response?.status;
+  private handleError(err: unknown): never {
+    const { status, message } = getHttpErrorInfo(err);
     if (status === 401 || status === 403) {
       throw new ProviderAuthError('STREAMTAPE');
     }
@@ -278,11 +403,15 @@ export class StreamtapeAdapter implements VideoProvider {
     if (status === 404) {
       throw new ProviderNotFoundError('STREAMTAPE');
     }
-    if (err instanceof ProviderAuthError || err instanceof ProviderRateLimitError ||
-        err instanceof ProviderNotFoundError || err instanceof ProviderUnavailableError) {
+    if (
+      err instanceof ProviderAuthError ||
+      err instanceof ProviderRateLimitError ||
+      err instanceof ProviderNotFoundError ||
+      err instanceof ProviderUnavailableError
+    ) {
       throw err;
     }
-    this.logger.error(`Streamtape API error: ${err?.message}`);
-    throw new ProviderUnavailableError('STREAMTAPE', err?.message);
+    this.logger.error(`Streamtape API error: ${message}`);
+    throw new ProviderUnavailableError('STREAMTAPE', message);
   }
 }

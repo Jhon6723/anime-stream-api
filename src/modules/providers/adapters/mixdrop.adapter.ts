@@ -2,20 +2,59 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-    ProviderAuthError,
-    ProviderNotFoundError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
+  ProviderAuthError,
+  ProviderNotFoundError,
+  ProviderRateLimitError,
+  ProviderUnavailableError,
+  getHttpErrorInfo,
 } from '../provider-errors';
 import {
-    ProviderFileInfo,
-    RemoteUploadResult,
-    RemoteUploadStatus,
-    UploadResult,
-    VideoProvider
+  ProviderFileInfo,
+  RemoteUploadResult,
+  RemoteUploadStatus,
+  UploadResult,
+  VideoProvider,
 } from '../video-provider.interface';
+
+interface MixdropUploadResponse {
+  success: boolean;
+  result?: { fileref?: string; url?: string; embedurl?: string };
+}
+
+interface MixdropRemoteUploadResponse {
+  success: boolean;
+  result?: { id?: string | number; fileref?: string; url?: string; embedurl?: string };
+}
+
+interface MixdropRemoteStatusResponse {
+  success: boolean;
+  result?: MixdropRemoteStatusItem;
+}
+
+interface MixdropRemoteStatusItem {
+  status?: string;
+  error?: string;
+  fileref?: string;
+  url?: string;
+}
+
+interface MixdropFileInfoResponse {
+  success: boolean;
+  result?: MixdropFileInfoItem | MixdropFileInfoItem[];
+}
+
+interface MixdropFileInfoItem {
+  fileref: string;
+  status: string;
+}
+
+interface MixdropDeleteResponse {
+  success: boolean;
+}
 
 /**
  * Adapter MixDrop. Ver spec 005-upload-mixdrop.
@@ -33,7 +72,9 @@ export class MixdropAdapter implements VideoProvider {
     private readonly config: ConfigService,
   ) {
     this.baseUrl = this.config.get<string>('providers.mixdrop.baseUrl')!;
-    this.uploadBaseUrl = this.config.get<string>('providers.mixdrop.uploadBaseUrl') ?? 'https://ul.mixdrop.ag/api';
+    this.uploadBaseUrl =
+      this.config.get<string>('providers.mixdrop.uploadBaseUrl') ??
+      'https://ul.mixdrop.ag/api';
   }
   private readonly uploadBaseUrl: string;
 
@@ -41,15 +82,13 @@ export class MixdropAdapter implements VideoProvider {
     try {
       const email = this.config.get<string>('providers.mixdrop.email')!;
 
-      const FormData = require('form-data');
-      const fs = require('fs');
       const form = new FormData();
       form.append('email', email);
       form.append('key', apiKey);
-      form.append('file', fs.createReadStream(filePath));
+      form.append('file', createReadStream(filePath));
 
       const { data } = await firstValueFrom(
-        this.http.post(this.uploadBaseUrl, form, {
+        this.http.post<MixdropUploadResponse>(this.uploadBaseUrl, form, {
           headers: form.getHeaders(),
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
@@ -68,22 +107,25 @@ export class MixdropAdapter implements VideoProvider {
         downloadUrl: data.result.url,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
-  async streamUpload(fileBuffer: Buffer, fileName: string, apiKey: string): Promise<UploadResult> {
+  async streamUpload(
+    fileBuffer: Buffer,
+    fileName: string,
+    apiKey: string,
+  ): Promise<UploadResult> {
     try {
       const email = this.config.get<string>('providers.mixdrop.email')!;
 
-      const FormData = require('form-data');
       const form = new FormData();
       form.append('email', email);
       form.append('key', apiKey);
       form.append('file', fileBuffer, fileName);
 
       const { data } = await firstValueFrom(
-        this.http.post(this.uploadBaseUrl, form, {
+        this.http.post<MixdropUploadResponse>(this.uploadBaseUrl, form, {
           headers: form.getHeaders(),
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
@@ -99,10 +141,10 @@ export class MixdropAdapter implements VideoProvider {
       return {
         providerFileId,
         embedUrl: this.buildEmbedUrl(providerFileId),
-        downloadUrl: data.result.downloadUrl,
+        downloadUrl: data.result.url,
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -111,9 +153,12 @@ export class MixdropAdapter implements VideoProvider {
       const email = this.config.get<string>('providers.mixdrop.email')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/remoteupload`, {
-          params: { email, key: apiKey, url },
-        }),
+        this.http.get<MixdropRemoteUploadResponse>(
+          `${this.baseUrl}/remoteupload`,
+          {
+            params: { email, key: apiKey, url },
+          },
+        ),
       );
 
       if (!data.success || !data.result?.id) {
@@ -122,18 +167,24 @@ export class MixdropAdapter implements VideoProvider {
 
       return { trackingId: String(data.result.id) };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
-  async checkRemoteUpload(trackingId: string, apiKey: string): Promise<RemoteUploadStatus> {
+  async checkRemoteUpload(
+    trackingId: string,
+    apiKey: string,
+  ): Promise<RemoteUploadStatus> {
     try {
       const email = this.config.get<string>('providers.mixdrop.email')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/remotestatus`, {
-          params: { email, key: apiKey, id: trackingId },
-        }),
+        this.http.get<MixdropRemoteStatusResponse>(
+          `${this.baseUrl}/remotestatus`,
+          {
+            params: { email, key: apiKey, id: trackingId },
+          },
+        ),
       );
 
       if (!data.success || !data.result) {
@@ -161,28 +212,33 @@ export class MixdropAdapter implements VideoProvider {
     }
   }
 
-  async getFileInfo(providerFileId: string, apiKey: string): Promise<ProviderFileInfo> {
+  async getFileInfo(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<ProviderFileInfo> {
     try {
       const email = this.config.get<string>('providers.mixdrop.email')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/fileinfo2`, {
+        this.http.get<MixdropFileInfoResponse>(`${this.baseUrl}/fileinfo2`, {
           params: { email, key: apiKey, 'ref[]': providerFileId },
         }),
       );
 
       if (!data.success || !data.result) {
-        throw new ProviderNotFoundError('MIXDROP', `File ${providerFileId} not found`);
+        throw new ProviderNotFoundError(
+          'MIXDROP',
+          `File ${providerFileId} not found`,
+        );
       }
 
       const file = Array.isArray(data.result) ? data.result[0] : data.result;
       return {
         providerFileId: file.fileref,
         status: this.mapStatus(file.status),
-        views: parseInt(file.views ?? '0', 10),
       };
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -191,16 +247,19 @@ export class MixdropAdapter implements VideoProvider {
       const email = this.config.get<string>('providers.mixdrop.email')!;
 
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/filedelete`, {
+        this.http.get<MixdropDeleteResponse>(`${this.baseUrl}/filedelete`, {
           params: { email, key: apiKey, ref: providerFileId },
         }),
       );
 
       if (!data.success) {
-        throw new ProviderNotFoundError('MIXDROP', `File ${providerFileId} not found or already deleted`);
+        throw new ProviderNotFoundError(
+          'MIXDROP',
+          `File ${providerFileId} not found or already deleted`,
+        );
       }
     } catch (err) {
-      throw this.handleError(err);
+      this.handleError(err);
     }
   }
 
@@ -228,8 +287,8 @@ export class MixdropAdapter implements VideoProvider {
     }
   }
 
-  private handleError(err: any): never {
-    const status = err?.response?.status;
+  private handleError(err: unknown): never {
+    const { status, message } = getHttpErrorInfo(err);
     if (status === 401 || status === 403) {
       throw new ProviderAuthError('MIXDROP');
     }
@@ -239,11 +298,15 @@ export class MixdropAdapter implements VideoProvider {
     if (status === 404) {
       throw new ProviderNotFoundError('MIXDROP');
     }
-    if (err instanceof ProviderAuthError || err instanceof ProviderRateLimitError ||
-        err instanceof ProviderNotFoundError || err instanceof ProviderUnavailableError) {
+    if (
+      err instanceof ProviderAuthError ||
+      err instanceof ProviderRateLimitError ||
+      err instanceof ProviderNotFoundError ||
+      err instanceof ProviderUnavailableError
+    ) {
       throw err;
     }
-    this.logger.error(`MixDrop API error: ${err?.message}`);
-    throw new ProviderUnavailableError('MIXDROP', err?.message);
+    this.logger.error(`MixDrop API error: ${message}`);
+    throw new ProviderUnavailableError('MIXDROP', message);
   }
 }

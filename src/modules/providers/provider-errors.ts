@@ -36,3 +36,26 @@ export class ProviderUnavailableError extends ProviderError {
     this.name = 'ProviderUnavailableError';
   }
 }
+
+interface HttpErrorLike {
+  response?: { status?: number };
+  message?: string;
+}
+
+export function getHttpErrorInfo(err: unknown): {
+  status?: number;
+  message?: string;
+} {
+  if (err instanceof Error) {
+    const httpErr = err as unknown as HttpErrorLike;
+    return {
+      status: httpErr.response?.status,
+      message: err.message,
+    };
+  }
+  const httpErr = err as HttpErrorLike;
+  return {
+    status: httpErr?.response?.status,
+    message: httpErr?.message,
+  };
+}
