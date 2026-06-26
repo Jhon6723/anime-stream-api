@@ -17,6 +17,10 @@ type MockedPrisma = {
     findUnique: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
+  videoSource: {
+    findUnique: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
   moderationLog: {
     findMany: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -35,6 +39,10 @@ describe('ModerationService', () => {
       episode: {
         findMany: vi.fn(),
         count: vi.fn(),
+        findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      videoSource: {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
@@ -290,6 +298,96 @@ describe('ModerationService', () => {
       expect(events.emitModerationEvent).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'RE_ENABLE', episodeId: 'ep-1' }),
       );
+    });
+  });
+
+  describe('disableVideoSource', () => {
+    it('sets isActive to false and creates log', async () => {
+      prisma.videoSource.findUnique.mockResolvedValue({
+        id: 'vs-1',
+        episodeId: 'ep-1',
+        episode: { animeId: 'anime-1' },
+      });
+      prisma.videoSource.update.mockResolvedValue({
+        id: 'vs-1',
+        isActive: false,
+      });
+      prisma.moderationLog.create.mockResolvedValue({ id: 'log-1' });
+
+      const result = await service.disableVideoSource(
+        'vs-1',
+        'mod-1',
+        'Contenido no relacionado',
+      );
+
+      expect(result.isActive).toBe(false);
+      expect(prisma.videoSource.update).toHaveBeenCalledWith({
+        where: { id: 'vs-1' },
+        data: { isActive: false },
+      });
+      expect(prisma.moderationLog.create).toHaveBeenCalledWith({
+        data: {
+          episodeId: 'ep-1',
+          animeId: 'anime-1',
+          moderatorId: 'mod-1',
+          action: ModerationAction.DISABLE,
+          reason: 'Contenido no relacionado',
+          notes: undefined,
+        },
+      });
+    });
+
+    it('throws NotFoundException for non-existent videoSource', async () => {
+      prisma.videoSource.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.disableVideoSource('nope', 'mod-1', 'reason'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('enableVideoSource', () => {
+    it('sets isActive to true and creates log', async () => {
+      prisma.videoSource.findUnique.mockResolvedValue({
+        id: 'vs-1',
+        episodeId: 'ep-1',
+        episode: { animeId: 'anime-1' },
+      });
+      prisma.videoSource.update.mockResolvedValue({
+        id: 'vs-1',
+        isActive: true,
+      });
+      prisma.moderationLog.create.mockResolvedValue({ id: 'log-1' });
+
+      const result = await service.enableVideoSource(
+        'vs-1',
+        'mod-1',
+        'Re-enabled after review',
+      );
+
+      expect(result.isActive).toBe(true);
+      expect(prisma.videoSource.update).toHaveBeenCalledWith({
+        where: { id: 'vs-1' },
+        data: { isActive: true },
+      });
+      expect(prisma.moderationLog.create).toHaveBeenCalledWith({
+        data: {
+          episodeId: 'ep-1',
+          animeId: 'anime-1',
+          moderatorId: 'mod-1',
+          action: ModerationAction.RE_ENABLE,
+          reason: 'Re-enabled after review',
+          notes: undefined,
+        },
+      });
+    });
+
+    it('throws NotFoundException for non-existent videoSource', async () => {
+      prisma.videoSource.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.enableVideoSource('nope', 'mod-1', 'reason'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

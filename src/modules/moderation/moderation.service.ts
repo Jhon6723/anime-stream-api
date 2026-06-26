@@ -237,6 +237,98 @@ export class ModerationService {
     return updated;
   }
 
+  async disableVideoSource(
+    videoSourceId: string,
+    moderatorId: string,
+    reason: string,
+    notes?: string,
+  ) {
+    const videoSource = await this.prisma.videoSource.findUnique({
+      where: { id: videoSourceId },
+      select: {
+        id: true,
+        episodeId: true,
+        episode: { select: { animeId: true } },
+      },
+    });
+    if (!videoSource) {
+      throw new NotFoundException(`VideoSource ${videoSourceId} not found`);
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.videoSource.update({
+        where: { id: videoSourceId },
+        data: { isActive: false },
+      }),
+      this.prisma.moderationLog.create({
+        data: {
+          episodeId: videoSource.episodeId,
+          animeId: videoSource.episode.animeId,
+          moderatorId,
+          action: ModerationAction.DISABLE,
+          reason,
+          notes,
+        },
+      }),
+    ]);
+
+    this.events.emitModerationEvent({
+      action: 'DISABLE',
+      episodeId: videoSource.episodeId,
+      animeId: videoSource.episode.animeId,
+      moderatorId,
+      reason,
+    });
+
+    return updated;
+  }
+
+  async enableVideoSource(
+    videoSourceId: string,
+    moderatorId: string,
+    reason: string,
+    notes?: string,
+  ) {
+    const videoSource = await this.prisma.videoSource.findUnique({
+      where: { id: videoSourceId },
+      select: {
+        id: true,
+        episodeId: true,
+        episode: { select: { animeId: true } },
+      },
+    });
+    if (!videoSource) {
+      throw new NotFoundException(`VideoSource ${videoSourceId} not found`);
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.videoSource.update({
+        where: { id: videoSourceId },
+        data: { isActive: true },
+      }),
+      this.prisma.moderationLog.create({
+        data: {
+          episodeId: videoSource.episodeId,
+          animeId: videoSource.episode.animeId,
+          moderatorId,
+          action: ModerationAction.RE_ENABLE,
+          reason,
+          notes,
+        },
+      }),
+    ]);
+
+    this.events.emitModerationEvent({
+      action: 'RE_ENABLE',
+      episodeId: videoSource.episodeId,
+      animeId: videoSource.episode.animeId,
+      moderatorId,
+      reason,
+    });
+
+    return updated;
+  }
+
   private async findEpisode(episodeId: string) {
     const episode = await this.prisma.episode.findUnique({
       where: { id: episodeId },

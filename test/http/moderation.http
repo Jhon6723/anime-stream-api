@@ -1,8 +1,9 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzczNWMwNS1kYzFjLTRkMDAtODhlMi01ZjRkZjZhNTQ0NmEiLCJlbWFpbCI6Im1vZGVyYXRvckBleGFtcGxlLmNvbSIsInJvbGUiOiJNT0RFUkFUT1IiLCJpYXQiOjE3ODI0NDA3NjAsImV4cCI6MTc4MjQ0MTY2MH0.Iu5SsLYjL2lkaeXRfDfsntTmTmNm8J4Y3HNAcGXP1pw
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzczNWMwNS1kYzFjLTRkMDAtODhlMi01ZjRkZjZhNTQ0NmEiLCJlbWFpbCI6Im1vZGVyYXRvckBleGFtcGxlLmNvbSIsInJvbGUiOiJNT0RFUkFUT1IiLCJpYXQiOjE3ODI1MDM3ODEsImV4cCI6MTc4MjUwNDY4MX0.mW8XmyhjBpqSf1HwNdu9Z_QAIVqVCcmWumtBtInlf0k
 
-@episodeId = fafdf7cb-be1e-4a4a-a16b-8a35662fc7cc
+@episodeId = 30dd8e3a-af66-446f-a56f-4f9a2d10f1f5
+@videoSourceId = a94043f3-41e6-4805-8c21-f3f21d2108dd
 
 ### ═══════════════════════════════════════════════════
 ### MODERATION — Cola y acciones (ADMIN / MODERATOR)
@@ -62,6 +63,26 @@ Content-Type: application/json
 
 ### Re-enable episode
 POST {{baseUrl}}/moderation/episodes/{{episodeId}}/enable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Revisado nuevamente, contenido correcto"
+}
+
+### ─── Moderación de VideoSources individuales ───
+
+### Disable a single video source (e.g. contenido no relacionado)
+POST {{baseUrl}}/moderation/video-sources/{{videoSourceId}}/disable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Contenido no relacionado al episodio"
+}
+
+### Re-enable a video source
+POST {{baseUrl}}/moderation/video-sources/{{videoSourceId}}/enable
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 

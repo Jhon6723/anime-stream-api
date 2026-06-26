@@ -94,4 +94,32 @@ export class ModerationController {
       dto.notes,
     );
   }
+
+  @Post('video-sources/:id/disable')
+  disableVideoSource(
+    @Param('id') videoSourceId: string,
+    @Body() dto: ModerationActionDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.moderationService.disableVideoSource(
+      videoSourceId,
+      user.id,
+      dto.reason,
+      dto.notes,
+    );
+  }
+
+  @Post('video-sources/:id/enable')
+  enableVideoSource(
+    @Param('id') videoSourceId: string,
+    @Body() dto: ModerationActionDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.moderationService.enableVideoSource(
+      videoSourceId,
+      user.id,
+      dto.reason,
+      dto.notes,
+    );
+  }
 }
