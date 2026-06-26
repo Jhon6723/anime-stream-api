@@ -1,7 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
-import { ModerationStatus, VideoSourceStatus } from '@prisma/client';
+import { ModerationStatus, Prisma, VideoSourceStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service';
+import { VideoSourceSyncService } from '../upload/video-source-sync.service';
 import { AnimeService } from './anime.service';
 
 const mockAnime = {
@@ -77,7 +78,10 @@ describe('AnimeService', () => {
     };
 
     const syncService = { syncPendingSources: vi.fn() };
-    service = new AnimeService(prisma as unknown as PrismaService, syncService as any);
+    service = new AnimeService(
+      prisma as unknown as PrismaService,
+      syncService as unknown as VideoSourceSyncService,
+    );
   });
 
   describe('findCatalog', () => {
@@ -100,8 +104,9 @@ describe('AnimeService', () => {
       await service.findCatalog({ q: 'naruto' });
 
       expect(prisma.anime.findMany).toHaveBeenCalled();
-      const findManyArg = prisma.anime.findMany.mock.calls[0][0];
-      expect(findManyArg.where.title).toEqual({
+      const findManyArg = prisma.anime.findMany.mock
+        .calls[0][0] as Prisma.AnimeFindManyArgs;
+      expect(findManyArg.where?.title).toEqual({
         contains: 'naruto',
         mode: 'insensitive',
       });
@@ -112,8 +117,9 @@ describe('AnimeService', () => {
 
       await service.findCatalog({ genre: 'Action' });
 
-      const findManyArg = prisma.anime.findMany.mock.calls[0][0];
-      expect(findManyArg.where.genres).toEqual({ has: 'Action' });
+      const findManyArg = prisma.anime.findMany.mock
+        .calls[0][0] as Prisma.AnimeFindManyArgs;
+      expect(findManyArg.where?.genres).toEqual({ has: 'Action' });
     });
 
     it('filters by status', async () => {
@@ -121,8 +127,9 @@ describe('AnimeService', () => {
 
       await service.findCatalog({ status: 'ONGOING' });
 
-      const findManyArg = prisma.anime.findMany.mock.calls[0][0];
-      expect(findManyArg.where.status).toBe('ONGOING');
+      const findManyArg = prisma.anime.findMany.mock
+        .calls[0][0] as Prisma.AnimeFindManyArgs;
+      expect(findManyArg.where?.status).toBe('ONGOING');
     });
 
     it('filters by type', async () => {
@@ -130,8 +137,9 @@ describe('AnimeService', () => {
 
       await service.findCatalog({ type: 'TV' });
 
-      const findManyArg = prisma.anime.findMany.mock.calls[0][0];
-      expect(findManyArg.where.type).toBe('TV');
+      const findManyArg = prisma.anime.findMany.mock
+        .calls[0][0] as Prisma.AnimeFindManyArgs;
+      expect(findManyArg.where?.type).toBe('TV');
     });
 
     it('always filters isEnabled = true', async () => {
@@ -139,8 +147,9 @@ describe('AnimeService', () => {
 
       await service.findCatalog({});
 
-      const findManyArg = prisma.anime.findMany.mock.calls[0][0];
-      expect(findManyArg.where.isEnabled).toBe(true);
+      const findManyArg = prisma.anime.findMany.mock
+        .calls[0][0] as Prisma.AnimeFindManyArgs;
+      expect(findManyArg.where?.isEnabled).toBe(true);
     });
 
     it('caps pageSize at 100', async () => {
@@ -179,7 +188,9 @@ describe('AnimeService', () => {
     it('throws NotFoundException when anime not found', async () => {
       prisma.anime.findFirst.mockResolvedValue(null);
 
-      await expect(service.findBySlug('nope')).rejects.toThrow(NotFoundException);
+      await expect(service.findBySlug('nope')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -193,7 +204,10 @@ describe('AnimeService', () => {
         bannerImage: 'https://example.com/banner.jpg',
       });
       prisma.episode.findFirst
-        .mockResolvedValueOnce({ ...mockEpisode, videoSources: mockVideoSources })
+        .mockResolvedValueOnce({
+          ...mockEpisode,
+          videoSources: mockVideoSources,
+        })
         .mockResolvedValueOnce(null) // prev (episode 0 doesn't exist)
         .mockResolvedValueOnce({ episodeNumber: 2, title: 'Episode 2' }); // next
 
@@ -221,8 +235,10 @@ describe('AnimeService', () => {
 
       await service.findEpisode('naruto', 1);
 
-      const episodeCall = prisma.episode.findFirst.mock.calls[0][0];
-      expect(episodeCall.include.videoSources.where).toEqual({
+      const episodeCall = prisma.episode.findFirst.mock.calls[0][0] as {
+        include?: { videoSources?: { where?: unknown } };
+      };
+      expect(episodeCall.include?.videoSources?.where).toEqual({
         isActive: true,
         status: VideoSourceStatus.READY,
       });
@@ -231,7 +247,9 @@ describe('AnimeService', () => {
     it('throws NotFoundException when anime not found', async () => {
       prisma.anime.findFirst.mockResolvedValue(null);
 
-      await expect(service.findEpisode('nope', 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findEpisode('nope', 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws NotFoundException when episode not found', async () => {
@@ -244,7 +262,9 @@ describe('AnimeService', () => {
       });
       prisma.episode.findFirst.mockResolvedValue(null);
 
-      await expect(service.findEpisode('naruto', 99)).rejects.toThrow(NotFoundException);
+      await expect(service.findEpisode('naruto', 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -253,7 +273,17 @@ describe('AnimeService', () => {
       prisma.$transaction.mockResolvedValue([
         mockAnime, // featured
         [mockAnime], // trending
-        [{ ...mockEpisode, anime: { id: 'anime-1', title: 'Naruto', slug: 'naruto', coverImage: null } }], // recentEpisodes
+        [
+          {
+            ...mockEpisode,
+            anime: {
+              id: 'anime-1',
+              title: 'Naruto',
+              slug: 'naruto',
+              coverImage: null,
+            },
+          },
+        ], // recentEpisodes
       ]);
 
       const result = await service.findHome();

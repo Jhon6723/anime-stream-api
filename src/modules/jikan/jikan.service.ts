@@ -12,6 +12,7 @@ import { AnimeStatus, AnimeType, ModerationStatus } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
+import { getHttpErrorInfo } from '../providers/provider-errors';
 
 export interface JikanSearchResult {
   malId: number;
@@ -53,6 +54,44 @@ interface JikanResponse<T> {
   };
 }
 
+interface JikanAnimeListItem {
+  mal_id: number;
+  title: string;
+  title_english?: string;
+  type?: string;
+  episodes?: number;
+  status?: string;
+  synopsis?: string;
+  images?: {
+    jpg?: { large_image_url?: string; image_url?: string };
+    webp?: { large_image_url?: string };
+  };
+}
+
+interface JikanAnimeFullItem {
+  mal_id: number;
+  title: string;
+  title_english?: string;
+  synopsis?: string;
+  type?: string;
+  status?: string;
+  episodes?: number;
+  aired?: { from?: string };
+  images?: {
+    jpg?: { large_image_url?: string };
+    webp?: { large_image_url?: string };
+  };
+  genres?: { name: string }[];
+  studios?: { name: string }[];
+}
+
+interface JikanEpisodeItem {
+  mal_id: number;
+  title?: string;
+  aired?: string;
+  filler?: boolean;
+}
+
 const CACHE_PREFIX = 'jikan:';
 
 @Injectable()
@@ -69,7 +108,8 @@ export class JikanService {
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
   ) {
-    this.baseUrl = this.config.get<string>('jikan.baseUrl') ?? 'https://api.jikan.moe/v4';
+    this.baseUrl =
+      this.config.get<string>('jikan.baseUrl') ?? 'https://api.jikan.moe/v4';
     this.cacheTtl = this.config.get<number>('jikan.cacheTtlSeconds') ?? 86400;
     const maxRps = this.config.get<number>('jikan.maxRequestsPerSecond') ?? 3;
     this.minIntervalMs = Math.ceil(1000 / maxRps);
@@ -79,7 +119,9 @@ export class JikanService {
     const now = Date.now();
     const elapsed = now - this.lastRequestTime;
     if (elapsed < this.minIntervalMs) {
-      await new Promise((resolve) => setTimeout(resolve, this.minIntervalMs - elapsed));
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.minIntervalMs - elapsed),
+      );
     }
     this.lastRequestTime = Date.now();
   }
@@ -102,38 +144,51 @@ export class JikanService {
 
       await this.redis.setex(cacheKey, this.cacheTtl, JSON.stringify(data));
       return data;
-    } catch (error: any) {
-      if (error?.response?.status === 429) {
+    } catch (error: unknown) {
+      const { status, message } = getHttpErrorInfo(error);
+      if (status === 429) {
         this.logger.warn('Jikan rate limited (429), retrying after 1s');
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return this.cachedGet<T>(path);
       }
-      if (error?.response?.status === 404) {
+      if (status === 504) {
+        this.logger.warn('Jikan gateway timeout (504), retrying after 2s');
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return this.cachedGet<T>(path);
+      }
+      if (status === 404) {
         throw new NotFoundException('Jikan resource not found');
       }
-      this.logger.error(`Jikan request failed: ${error?.message}`);
+      this.logger.error(`Jikan request failed: ${message}`);
       throw new ServiceUnavailableException('Jikan API unavailable');
     }
   }
 
-  async search(query: string, page = 1, limit = 10): Promise<{ items: JikanSearchResult[]; page: number; hasNext: boolean }> {
+  async search(
+    query: string,
+    page = 1,
+    limit = 10,
+  ): Promise<{ items: JikanSearchResult[]; page: number; hasNext: boolean }> {
     if (!query || query.trim().length < 3) {
-      throw new BadRequestException('Search query must be at least 3 characters');
+      throw new BadRequestException(
+        'Search query must be at least 3 characters',
+      );
     }
 
     const clampedLimit = Math.min(limit, 25);
-    const response = await this.cachedGet<any[]>(
+    const response = await this.cachedGet<JikanAnimeListItem[]>(
       `/anime?q=${encodeURIComponent(query)}&page=${page}&limit=${clampedLimit}&sfw=true`,
     );
 
-    const items = (response.data ?? []).map((item: any) => ({
+    const items = (response.data ?? []).map((item) => ({
       malId: item.mal_id,
       title: item.title_english || item.title,
       type: item.type,
       episodes: item.episodes,
       status: item.status,
       synopsis: item.synopsis,
-      imageUrl: item.images?.jpg?.large_image_url ?? item.images?.jpg?.image_url,
+      imageUrl:
+        item.images?.jpg?.large_image_url ?? item.images?.jpg?.image_url,
     }));
 
     return {
@@ -143,18 +198,24 @@ export class JikanService {
     };
   }
 
-  async getSeasonNow(page = 1, limit = 15): Promise<{ items: JikanSearchResult[]; page: number; hasNext: boolean }> {
+  async getSeasonNow(
+    page = 1,
+    limit = 15,
+  ): Promise<{ items: JikanSearchResult[]; page: number; hasNext: boolean }> {
     const clampedLimit = Math.min(limit, 25);
-    const response = await this.cachedGet<any[]>(`/seasons/now?page=${page}&limit=${clampedLimit}&sfw=true`);
+    const response = await this.cachedGet<JikanAnimeListItem[]>(
+      `/seasons/now?page=${page}&limit=${clampedLimit}&sfw=true`,
+    );
 
-    const items = (response.data ?? []).map((item: any) => ({
+    const items = (response.data ?? []).map((item) => ({
       malId: item.mal_id,
       title: item.title_english || item.title,
       type: item.type,
       episodes: item.episodes,
       status: item.status,
       synopsis: item.synopsis,
-      imageUrl: item.images?.jpg?.large_image_url ?? item.images?.jpg?.image_url,
+      imageUrl:
+        item.images?.jpg?.large_image_url ?? item.images?.jpg?.image_url,
     }));
 
     return {
@@ -165,7 +226,9 @@ export class JikanService {
   }
 
   async getAnimePreview(malId: number): Promise<JikanAnimeDetail> {
-    const response = await this.cachedGet<any>(`/anime/${malId}/full`);
+    const response = await this.cachedGet<JikanAnimeFullItem>(
+      `/anime/${malId}/full`,
+    );
     const item = response.data;
 
     return {
@@ -177,8 +240,8 @@ export class JikanService {
       bannerImage: item.images?.webp?.large_image_url,
       status: item.status,
       type: item.type,
-      genres: (item.genres ?? []).map((g: any) => g.name),
-      studios: (item.studios ?? []).map((s: any) => s.name),
+      genres: (item.genres ?? []).map((g) => g.name),
+      studios: (item.studios ?? []).map((s) => s.name),
       totalEpisodes: item.episodes,
       releaseDate: item.aired?.from,
     };
@@ -193,7 +256,9 @@ export class JikanService {
       select: { id: true },
     });
     if (existing) {
-      throw new ConflictException(`Anime with Jikan ID ${malId} already imported`);
+      throw new ConflictException(
+        `Anime with Jikan ID ${malId} already imported`,
+      );
     }
 
     const detail = await this.getAnimePreview(malId);
@@ -245,7 +310,7 @@ export class JikanService {
     let hasNext = true;
 
     while (hasNext) {
-      const response = await this.cachedGet<any[]>(
+      const response = await this.cachedGet<JikanEpisodeItem[]>(
         `/anime/${malId}/episodes?page=${page}`,
       );
 

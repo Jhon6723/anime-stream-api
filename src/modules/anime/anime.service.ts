@@ -1,5 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ModerationStatus, Prisma, VideoSourceStatus } from '@prisma/client';
+import {
+  AnimeStatus,
+  AnimeType,
+  ModerationStatus,
+  Prisma,
+  VideoSourceStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { VideoSourceSyncService } from '../upload/video-source-sync.service';
 
@@ -29,12 +35,10 @@ export class AnimeService {
 
     const where: Prisma.AnimeWhereInput = {
       isEnabled: true,
-      ...(query.q
-        ? { title: { contains: query.q, mode: 'insensitive' } }
-        : {}),
+      ...(query.q ? { title: { contains: query.q, mode: 'insensitive' } } : {}),
       ...(query.genre ? { genres: { has: query.genre } } : {}),
-      ...(query.status ? { status: query.status as any } : {}),
-      ...(query.type ? { type: query.type as any } : {}),
+      ...(query.status ? { status: query.status as AnimeStatus } : {}),
+      ...(query.type ? { type: query.type as AnimeType } : {}),
     };
 
     let orderBy: Prisma.AnimeOrderByWithRelationInput;
@@ -184,7 +188,13 @@ export class AnimeService {
   async findEpisode(slug: string, episodeNumber: number) {
     const anime = await this.prisma.anime.findFirst({
       where: { slug, isEnabled: true },
-      select: { id: true, title: true, slug: true, coverImage: true, bannerImage: true },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        coverImage: true,
+        bannerImage: true,
+      },
     });
     if (!anime) {
       throw new NotFoundException('Anime not found');
@@ -256,57 +266,59 @@ export class AnimeService {
   }
 
   async findHome() {
-    const [featured, trending, recentEpisodes] = await this.prisma.$transaction([
-      this.prisma.anime.findFirst({
-        where: { isEnabled: true },
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          synopsis: true,
-          coverImage: true,
-          bannerImage: true,
-          status: true,
-          type: true,
-          genres: true,
-          studios: true,
-        },
-      }),
-      this.prisma.anime.findMany({
-        where: { isEnabled: true },
-        orderBy: { updatedAt: 'desc' },
-        take: 12,
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          coverImage: true,
-          status: true,
-          type: true,
-          genres: true,
-        },
-      }),
-      this.prisma.episode.findMany({
-        where: {
-          isEnabled: true,
-          moderationStatus: ModerationStatus.APPROVED,
-          anime: { isEnabled: true },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 12,
-        include: {
-          anime: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              coverImage: true,
+    const [featured, trending, recentEpisodes] = await this.prisma.$transaction(
+      [
+        this.prisma.anime.findFirst({
+          where: { isEnabled: true },
+          orderBy: { updatedAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            synopsis: true,
+            coverImage: true,
+            bannerImage: true,
+            status: true,
+            type: true,
+            genres: true,
+            studios: true,
+          },
+        }),
+        this.prisma.anime.findMany({
+          where: { isEnabled: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 12,
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            coverImage: true,
+            status: true,
+            type: true,
+            genres: true,
+          },
+        }),
+        this.prisma.episode.findMany({
+          where: {
+            isEnabled: true,
+            moderationStatus: ModerationStatus.APPROVED,
+            anime: { isEnabled: true },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 12,
+          include: {
+            anime: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                coverImage: true,
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ],
+    );
 
     return { featured, trending, recentEpisodes };
   }

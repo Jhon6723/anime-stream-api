@@ -1,5 +1,10 @@
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, ConflictException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ModerationStatus } from '@prisma/client';
 import { of, throwError } from 'rxjs';
@@ -48,15 +53,30 @@ const mockJikanAnimeFull = {
 
 const mockEpisodesPage1 = {
   data: [
-    { mal_id: 1, title: 'Enter: Naruto Uzumaki!', aired: '2002-10-03T00:00:00+00:00', filler: false },
-    { mal_id: 2, title: 'My Name is Konohamaru!', aired: '2002-10-10T00:00:00+00:00', filler: false },
+    {
+      mal_id: 1,
+      title: 'Enter: Naruto Uzumaki!',
+      aired: '2002-10-03T00:00:00+00:00',
+      filler: false,
+    },
+    {
+      mal_id: 2,
+      title: 'My Name is Konohamaru!',
+      aired: '2002-10-10T00:00:00+00:00',
+      filler: false,
+    },
   ],
   pagination: { last_visible_page: 2, has_next_page: true },
 };
 
 const mockEpisodesPage2 = {
   data: [
-    { mal_id: 3, title: 'Sasuke and Sakura', aired: '2002-10-17T00:00:00+00:00', filler: false },
+    {
+      mal_id: 3,
+      title: 'Sasuke and Sakura',
+      aired: '2002-10-17T00:00:00+00:00',
+      filler: false,
+    },
   ],
   pagination: { last_visible_page: 2, has_next_page: false },
 };
@@ -66,7 +86,10 @@ describe('JikanService', () => {
   let httpService: { get: ReturnType<typeof vi.fn> };
   let redis: { get: ReturnType<typeof vi.fn>; setex: ReturnType<typeof vi.fn> };
   let prisma: {
-    anime: { findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
+    anime: {
+      findUnique: ReturnType<typeof vi.fn>;
+      create: ReturnType<typeof vi.fn>;
+    };
     episode: { createMany: ReturnType<typeof vi.fn> };
   };
   let config: { get: ReturnType<typeof vi.fn> };
@@ -75,7 +98,10 @@ describe('JikanService', () => {
     vi.clearAllMocks();
 
     httpService = { get: vi.fn() };
-    redis = { get: vi.fn().mockResolvedValue(null), setex: vi.fn().mockResolvedValue(undefined) };
+    redis = {
+      get: vi.fn().mockResolvedValue(null),
+      setex: vi.fn().mockResolvedValue(undefined),
+    };
     prisma = {
       anime: { findUnique: vi.fn(), create: vi.fn() },
       episode: { createMany: vi.fn() },
@@ -154,7 +180,9 @@ describe('JikanService', () => {
         throwError(() => ({ response: { status: 404 } })),
       );
 
-      await expect(service.getAnimePreview(99999)).rejects.toThrow(NotFoundException);
+      await expect(service.getAnimePreview(99999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ServiceUnavailableException on network error', async () => {
@@ -162,7 +190,9 @@ describe('JikanService', () => {
         throwError(() => ({ message: 'ECONNREFUSED' })),
       );
 
-      await expect(service.getAnimePreview(20)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.getAnimePreview(20)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 
@@ -200,7 +230,7 @@ describe('JikanService', () => {
               episodeNumber: 1,
               moderationStatus: ModerationStatus.PENDING,
               createdById: 'user-1',
-            }),
+            }) as unknown as Record<string, unknown>,
           ]),
         }),
       );
@@ -209,7 +239,9 @@ describe('JikanService', () => {
     it('throws ConflictException when anime already imported', async () => {
       prisma.anime.findUnique.mockResolvedValue({ id: 'existing-1' });
 
-      await expect(service.importAnime(20, 'user-1')).rejects.toThrow(ConflictException);
+      await expect(service.importAnime(20, 'user-1')).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('creates anime with no episodes if Jikan has none', async () => {
@@ -217,7 +249,9 @@ describe('JikanService', () => {
       prisma.anime.create.mockResolvedValue({ id: 'anime-2' });
       httpService.get
         .mockReturnValueOnce(of({ data: mockJikanAnimeFull }))
-        .mockReturnValueOnce(of({ data: { data: [], pagination: { has_next_page: false } } }));
+        .mockReturnValueOnce(
+          of({ data: { data: [], pagination: { has_next_page: false } } }),
+        );
 
       const result = await service.importAnime(20, 'user-1');
 
