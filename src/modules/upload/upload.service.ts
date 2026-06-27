@@ -232,33 +232,31 @@ export class UploadService {
 
     if (sourcesToSync.length > 0) {
       await this.syncService.syncPendingSources(sourcesToSync);
-
-      return this.prisma.uploadJob.findMany({
-        where: userId ? { initiatedById: userId } : undefined,
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-        include: {
-          episode: {
-            select: {
-              id: true,
-              episodeNumber: true,
-              anime: { select: { title: true, slug: true } },
-            },
-          },
-          videoSource: {
-            select: {
-              id: true,
-              provider: true,
-              language: true,
-              status: true,
-              embedUrl: true,
-            },
-          },
-        },
-      });
     }
 
-    return jobs;
+    return this.prisma.uploadJob.findMany({
+      where: userId ? { initiatedById: userId } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: {
+        episode: {
+          select: {
+            id: true,
+            episodeNumber: true,
+            anime: { select: { title: true, slug: true } },
+          },
+        },
+        videoSource: {
+          select: {
+            id: true,
+            provider: true,
+            language: true,
+            status: true,
+            embedUrl: true,
+          },
+        },
+      },
+    });
   }
 
   async getJob(jobId: string, userId?: string) {
