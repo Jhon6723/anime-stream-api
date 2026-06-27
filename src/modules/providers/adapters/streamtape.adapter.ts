@@ -6,19 +6,19 @@ import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-  ProviderAuthError,
-  ProviderNotFoundError,
-  ProviderRateLimitError,
-  ProviderUnavailableError,
-  getHttpErrorInfo,
+    ProviderAuthError,
+    ProviderNotFoundError,
+    ProviderRateLimitError,
+    ProviderUnavailableError,
+    getHttpErrorInfo,
 } from '../provider-errors';
 import {
-  PresignResult,
-  ProviderFileInfo,
-  RemoteUploadResult,
-  RemoteUploadStatus,
-  UploadResult,
-  VideoProvider,
+    PresignResult,
+    ProviderFileInfo,
+    RemoteUploadResult,
+    RemoteUploadStatus,
+    UploadResult,
+    VideoProvider,
 } from '../video-provider.interface';
 
 interface StreamtapeUploadUrlResponse {
@@ -73,6 +73,11 @@ interface StreamtapeFolderFile {
 
 interface StreamtapeDeleteResponse {
   status: number;
+}
+
+interface StreamtapeSplashResponse {
+  status: number;
+  result?: string;
 }
 
 /**
@@ -358,6 +363,32 @@ export class StreamtapeAdapter implements VideoProvider {
       };
     } catch (err) {
       this.handleError(err);
+    }
+  }
+
+  async getThumbnail(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<string | null> {
+    try {
+      const login = this.config.get<string>('providers.streamtape.login')!;
+
+      const { data } = await firstValueFrom(
+        this.http.get<StreamtapeSplashResponse>(
+          `${this.baseUrl}/file/getsplash`,
+          {
+            params: { login, key: apiKey, file: providerFileId },
+          },
+        ),
+      );
+
+      if (data.status !== 200 || !data.result) {
+        return null;
+      }
+
+      return data.result;
+    } catch {
+      return null;
     }
   }
 

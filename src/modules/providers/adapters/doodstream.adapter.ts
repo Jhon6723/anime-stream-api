@@ -52,6 +52,18 @@ interface DoodFileInfoItem {
   views?: string;
 }
 
+interface DoodFileImageResponse {
+  status: number;
+  result?: DoodFileImageItem[];
+}
+
+interface DoodFileImageItem {
+  filecode: string;
+  single_img?: string;
+  thumb_img?: string;
+  splash_img?: string;
+}
+
 interface DoodDeleteResponse {
   status: number;
 }
@@ -273,6 +285,28 @@ export class DoodstreamAdapter implements VideoProvider {
       };
     } catch (err) {
       this.handleError(err);
+    }
+  }
+
+  async getThumbnail(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<string | null> {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.get<DoodFileImageResponse>(`${this.baseUrl}/file/image`, {
+          params: { key: apiKey, file_code: providerFileId },
+        }),
+      );
+
+      if (data.status !== 200 || !data.result?.[0]) {
+        return null;
+      }
+
+      const img = data.result[0];
+      return img.single_img ?? img.thumb_img ?? img.splash_img ?? null;
+    } catch {
+      return null;
     }
   }
 

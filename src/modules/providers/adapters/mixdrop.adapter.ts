@@ -6,18 +6,18 @@ import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-  ProviderAuthError,
-  ProviderNotFoundError,
-  ProviderRateLimitError,
-  ProviderUnavailableError,
-  getHttpErrorInfo,
+    ProviderAuthError,
+    ProviderNotFoundError,
+    ProviderRateLimitError,
+    ProviderUnavailableError,
+    getHttpErrorInfo,
 } from '../provider-errors';
 import {
-  ProviderFileInfo,
-  RemoteUploadResult,
-  RemoteUploadStatus,
-  UploadResult,
-  VideoProvider,
+    ProviderFileInfo,
+    RemoteUploadResult,
+    RemoteUploadStatus,
+    UploadResult,
+    VideoProvider,
 } from '../video-provider.interface';
 
 interface MixdropUploadResponse {
@@ -49,12 +49,13 @@ interface MixdropRemoteStatusItem {
 
 interface MixdropFileInfoResponse {
   success: boolean;
-  result?: MixdropFileInfoItem | MixdropFileInfoItem[];
+  result?: MixdropFileInfoItem | MixdropFileInfoItem[] | Record<string, MixdropFileInfoItem>;
 }
 
 interface MixdropFileInfoItem {
   fileref: string;
   status: string;
+  thumb?: string | null;
 }
 
 interface MixdropDeleteResponse {
@@ -237,7 +238,13 @@ export class MixdropAdapter implements VideoProvider {
         );
       }
 
-      const file = Array.isArray(data.result) ? data.result[0] : data.result;
+      const file = this.extractFileInfoItem(data.result, providerFileId);
+      if (!file) {
+        throw new ProviderNotFoundError(
+          'MIXDROP',
+          `File ${providerFileId} not found`,
+        );
+      }
       return {
         providerFileId: file.fileref,
         status: this.mapStatus(file.status),
@@ -245,6 +252,49 @@ export class MixdropAdapter implements VideoProvider {
     } catch (err) {
       this.handleError(err);
     }
+  }
+
+  async getThumbnail(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<string | null> {
+    try {
+      const email = this.config.get<string>('providers.mixdrop.email')!;
+
+      const { data } = await firstValueFrom(
+        this.http.get<MixdropFileInfoResponse>(`${this.baseUrl}/fileinfo2`, {
+          params: { email, key: apiKey, 'ref[]': providerFileId },
+        }),
+      );
+
+      if (!data.success || !data.result) {
+        return null;
+      }
+
+      const file = this.extractFileInfoItem(data.result, providerFileId);
+      if (!file) return null;
+
+      return file.thumb ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private extractFileInfoItem(
+    result: MixdropFileInfoItem | MixdropFileInfoItem[] | Record<string, MixdropFileInfoItem>,
+    providerFileId: string,
+  ): MixdropFileInfoItem | null {
+    if (Array.isArray(result)) {
+      return result[0] ?? null;
+    }
+    if (typeof result === 'object' && result !== null) {
+      if ('fileref' in result) {
+        return result as MixdropFileInfoItem;
+      }
+      const keyed = result as Record<string, MixdropFileInfoItem>;
+      return keyed[providerFileId] ?? Object.values(keyed)[0] ?? null;
+    }
+    return null;
   }
 
   async deleteFile(providerFileId: string, apiKey: string): Promise<void> {

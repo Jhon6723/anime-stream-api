@@ -78,6 +78,10 @@ export interface VideoProvider {
     providerFileId: string,
     apiKey: string,
   ): Promise<ProviderFileInfo>;
+  getThumbnail(
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<string | null>;
   deleteFile(providerFileId: string, apiKey: string): Promise<void>;
   buildEmbedUrl(providerFileId: string): string;
 }
