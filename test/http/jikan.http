@@ -1,6 +1,6 @@
 ### Variables (shared across all .http files)
 @baseUrl = http://localhost:4000/api
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNDgyNTg1LCJleHAiOjE3ODI0ODM0ODV9.rqHs1Z7c5qVQsH62bDs7WiRM8yrqA6X9KEvcWIB0UxA
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDdkNTY5YS03YTY4LTRlMTEtODU2Ni02NTdjOGIyOWVhMWEiLCJlbWFpbCI6Impob25lc3RlYmFucml2ZXJhNjZAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgyNTI3OTM4LCJleHAiOjE3ODI1Mjg4Mzh9.ddR9VKYdhMDyGfnOtyACw_Nu0psoGSI9rN_ViJLp9KI
 
 ### ─── Jikan (Uploader/Admin/Moderator) ───
 
@@ -19,7 +19,7 @@ GET {{baseUrl}}/jikan/seasons/now?page=1&limit=15
 Authorization: Bearer {{accessToken}}
 
 ### Anime preview by MAL ID
-GET {{baseUrl}}/jikan/anime/20
+GET {{baseUrl}}/jikan/anime/37430
 Authorization: Bearer {{accessToken}}
 
 ### Import anime by MAL ID (uploader/admin)
