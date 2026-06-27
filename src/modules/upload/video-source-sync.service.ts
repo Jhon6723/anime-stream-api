@@ -58,6 +58,13 @@ export class VideoSourceSyncService {
         this.logger.log(
           `Synced videoSource ${videoSourceId}: ${provider} -> READY (${result.providerFileId})`,
         );
+
+        await this.fetchAndSaveThumbnail(
+          videoSourceId,
+          provider,
+          result.providerFileId,
+          apiKey,
+        );
       } else if (result.status === 'FAILED') {
         await this.prisma.videoSource.update({
           where: { id: videoSourceId },
@@ -70,6 +77,48 @@ export class VideoSourceSyncService {
     } catch (err) {
       this.logger.debug(
         `Sync skipped for ${videoSourceId}: ${err instanceof Error ? err.message : 'unknown'}`,
+      );
+    }
+  }
+
+  private async fetchAndSaveThumbnail(
+    videoSourceId: string,
+    provider: Provider,
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<void> {
+    try {
+      const adapter = this.registry.get(provider);
+      const thumbnailUrl = await adapter.getThumbnail(providerFileId, apiKey);
+
+      if (!thumbnailUrl) {
+        this.logger.debug(
+          `No thumbnail returned by ${provider} for ${providerFileId}`,
+        );
+        return;
+      }
+
+      const videoSource = await this.prisma.videoSource.findUnique({
+        where: { id: videoSourceId },
+        select: { episodeId: true },
+      });
+
+      if (!videoSource) return;
+
+      await this.prisma.episode.updateMany({
+        where: {
+          id: videoSource.episodeId,
+          thumbnailUrl: null,
+        },
+        data: { thumbnailUrl },
+      });
+
+      this.logger.log(
+        `Saved thumbnail for episode ${videoSource.episodeId}: ${thumbnailUrl}`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to fetch thumbnail for ${videoSourceId}: ${err instanceof Error ? err.message : 'unknown'}`,
       );
     }
   }

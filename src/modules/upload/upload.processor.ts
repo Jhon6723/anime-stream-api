@@ -7,8 +7,8 @@ import { UPLOAD_QUEUE, UploadJobData } from '../../queue/queue.constants';
 import { EventsGateway } from '../../websocket/events.gateway';
 import { ProviderAccountService } from '../providers/provider-account.service';
 import {
-  ProviderRateLimitError,
-  ProviderUnavailableError,
+    ProviderRateLimitError,
+    ProviderUnavailableError,
 } from '../providers/provider-errors';
 import { ProviderRegistryService } from '../providers/provider-registry.service';
 import { UploadResult } from '../providers/video-provider.interface';
@@ -137,6 +137,13 @@ export class UploadProcessor extends WorkerHost {
         });
 
         this.events.emitUploadStatus(uploadJobId, 'COMPLETED');
+
+        await this.fetchAndSaveThumbnail(
+          videoSource.id,
+          uploadJob.provider,
+          result.providerFileId,
+          apiKey,
+        );
       }
     } catch (err) {
       const isRetryable =
@@ -172,5 +179,42 @@ export class UploadProcessor extends WorkerHost {
 
   private async resolveApiKey(provider: Provider): Promise<string> {
     return this.accountService.resolveDecryptedApiKey(provider);
+  }
+
+  private async fetchAndSaveThumbnail(
+    videoSourceId: string,
+    provider: Provider,
+    providerFileId: string,
+    apiKey: string,
+  ): Promise<void> {
+    try {
+      const adapter = this.registry.get(provider);
+      const thumbnailUrl = await adapter.getThumbnail(providerFileId, apiKey);
+
+      if (!thumbnailUrl) return;
+
+      const videoSource = await this.prisma.videoSource.findUnique({
+        where: { id: videoSourceId },
+        select: { episodeId: true },
+      });
+
+      if (!videoSource) return;
+
+      await this.prisma.episode.updateMany({
+        where: {
+          id: videoSource.episodeId,
+          thumbnailUrl: null,
+        },
+        data: { thumbnailUrl },
+      });
+
+      this.logger.log(
+        `Saved thumbnail for episode ${videoSource.episodeId}: ${thumbnailUrl}`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to fetch thumbnail for ${videoSourceId}: ${err instanceof Error ? err.message : 'unknown'}`,
+      );
+    }
   }
 }
