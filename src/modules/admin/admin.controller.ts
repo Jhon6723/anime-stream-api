@@ -1,25 +1,28 @@
 import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Put,
-  Query,
-  UseGuards,
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Put,
+    Query,
+    UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SystemConfigCategory, UserRole } from '@prisma/client';
 import {
-  type AuthUser,
-  CurrentUser,
+    type AuthUser,
+    CurrentUser,
 } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminService } from './admin.service';
 import { HardDeleteDto } from './dto/hard-delete.dto';
+import { UpdateEpisodeDto } from './dto/update-episode.dto';
 import { UpdateSystemConfigDto } from './dto/update-system-config.dto';
+import { UpdateVideoSourceDto } from './dto/update-video-source.dto';
 import { SystemConfigService } from './system-config.service';
 
 @ApiTags('admin')
@@ -60,6 +63,22 @@ export class AdminController {
       throw new BadRequestException('Confirm field must be "CONFIRM"');
     }
     return this.adminService.hardDeleteEpisode(id, admin.id, dto.reason);
+  }
+
+  @Patch('episodes/:id')
+  updateEpisode(
+    @Param('id') id: string,
+    @Body() dto: UpdateEpisodeDto,
+  ) {
+    return this.adminService.updateEpisode(id, dto);
+  }
+
+  @Patch('video-sources/:id')
+  updateVideoSource(
+    @Param('id') id: string,
+    @Body() dto: UpdateVideoSourceDto,
+  ) {
+    return this.adminService.updateVideoSource(id, dto);
   }
 
   @Delete('video-sources/:id')

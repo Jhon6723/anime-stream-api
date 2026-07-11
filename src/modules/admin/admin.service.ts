@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ModerationAction } from '@prisma/client';
+import { ModerationAction, SubtitleLanguage } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UpdateEpisodeDto } from './dto/update-episode.dto';
+import { UpdateVideoSourceDto } from './dto/update-video-source.dto';
 
 @Injectable()
 export class AdminService {
@@ -120,5 +122,65 @@ export class AdminService {
     ]);
 
     return { id: videoSourceId, provider: source.provider, deleted: true };
+  }
+
+  async updateEpisode(episodeId: string, dto: UpdateEpisodeDto) {
+    const episode = await this.prisma.episode.findUnique({
+      where: { id: episodeId },
+      select: { id: true },
+    });
+    if (!episode) {
+      throw new NotFoundException(`Episode ${episodeId} not found`);
+    }
+
+    const data: Record<string, unknown> = {};
+    if (dto.title !== undefined) data.title = dto.title || null;
+    if (dto.description !== undefined) data.description = dto.description || null;
+    if (dto.episodeNumber !== undefined) data.episodeNumber = dto.episodeNumber;
+    if (dto.isEnabled !== undefined) data.isEnabled = dto.isEnabled;
+    if (dto.isFiller !== undefined) data.isFiller = dto.isFiller;
+
+    return this.prisma.episode.update({
+      where: { id: episodeId },
+      data,
+      select: {
+        id: true,
+        episodeNumber: true,
+        title: true,
+        description: true,
+        isEnabled: true,
+        isFiller: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async updateVideoSource(videoSourceId: string, dto: UpdateVideoSourceDto) {
+    const source = await this.prisma.videoSource.findUnique({
+      where: { id: videoSourceId },
+      select: { id: true },
+    });
+    if (!source) {
+      throw new NotFoundException(`VideoSource ${videoSourceId} not found`);
+    }
+
+    const data: Record<string, unknown> = {};
+    if (dto.language !== undefined) data.language = dto.language as SubtitleLanguage;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.embedUrl !== undefined) data.embedUrl = dto.embedUrl || null;
+
+    return this.prisma.videoSource.update({
+      where: { id: videoSourceId },
+      data,
+      select: {
+        id: true,
+        provider: true,
+        language: true,
+        embedUrl: true,
+        isActive: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
   }
 }
