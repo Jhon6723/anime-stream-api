@@ -11,9 +11,7 @@ import { UPLOAD_QUEUE, UploadJobData } from '../../queue/queue.constants';
 import { ProviderAccountService } from '../providers/provider-account.service';
 import { ProviderRegistryService } from '../providers/provider-registry.service';
 import { BulkUploadDto } from './dto/bulk-upload.dto';
-import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateUploadDto } from './dto/create-upload.dto';
-import { PresignUploadDto } from './dto/presign-upload.dto';
 import { VideoSourceSyncService } from './video-source-sync.service';
 
 export interface CsvUploadResult {
@@ -85,7 +83,7 @@ export class UploadService {
           episodeId: item.episodeId,
           provider: dto.provider,
           language: item.language ?? dto.language,
-          status: { not: 'DELETED' },
+          status: { notIn: ['DELETED', 'ERROR'] },
         },
       });
       if (hasDuplicate) {
@@ -170,7 +168,7 @@ export class UploadService {
           episodeId: episode.id,
           provider,
           language,
-          status: { not: 'DELETED' },
+          status: { notIn: ['DELETED', 'ERROR'] },
         },
       });
       if (hasDuplicate) {
@@ -221,6 +219,7 @@ export class UploadService {
             status: true,
             embedUrl: true,
             remoteTrackingId: true,
+            providerFileId: true,
           },
         },
       },
@@ -278,6 +277,7 @@ export class UploadService {
             status: true,
             embedUrl: true,
             remoteTrackingId: true,
+            providerFileId: true,
           },
         },
       },
@@ -305,7 +305,7 @@ export class UploadService {
     sourceUrl?: string,
   ): Promise<void> {
     const existing = await this.prisma.videoSource.findFirst({
-      where: { episodeId, provider, language, status: { not: 'DELETED' } },
+      where: { episodeId, provider, language, status: { notIn: ['DELETED', 'ERROR'] } },
     });
     if (existing) {
       throw new BadRequestException(
@@ -331,41 +331,6 @@ export class UploadService {
 
   private async resolveApiKey(provider: Provider): Promise<string> {
     return this.accountService.resolveDecryptedApiKey(provider);
-  }
-
-  async presignUpload(dto: PresignUploadDto) {
-    const episode = await this.prisma.episode.findUnique({
-      where: { id: dto.episodeId },
-    });
-    if (!episode) {
-      throw new NotFoundException(`Episode ${dto.episodeId} not found`);
-    }
-
-    await this.checkDuplicate(dto.episodeId, dto.provider, dto.language);
-
-    const adapter = this.registry.get(dto.provider);
-    if (!adapter.getUploadUrl) {
-      throw new BadRequestException(
-        `Provider ${dto.provider} does not support direct upload (presign). Use REMOTE_URL instead.`,
-      );
-    }
-
-    const apiKey = await this.resolveApiKey(dto.provider);
-    const presign = await adapter.getUploadUrl(apiKey);
-
-    if (presign.requiresServerProxy) {
-      throw new BadRequestException(
-        `Provider ${dto.provider} requires server-side proxy upload. Use POST /uploads/stream instead.`,
-      );
-    }
-
-    return {
-      uploadUrl: presign.uploadUrl,
-      extraFields: presign.extraFields,
-      provider: dto.provider,
-      episodeId: dto.episodeId,
-      language: dto.language,
-    };
   }
 
   async streamUpload(
@@ -395,8 +360,15 @@ export class UploadService {
     const apiKey = await this.resolveApiKey(provider);
     const result = await adapter.streamUpload(fileBuffer, fileName, apiKey);
 
-    const videoSource = await this.prisma.videoSource.create({
-      data: {
+    const videoSource = await this.prisma.videoSource.upsert({
+      where: {
+        episodeId_provider_language: {
+          episodeId,
+          provider,
+          language,
+        },
+      },
+      create: {
         episodeId,
         provider,
         language,
@@ -405,6 +377,13 @@ export class UploadService {
         downloadUrl: result.downloadUrl,
         status: 'ENCODING',
       },
+      update: {
+        providerFileId: result.providerFileId,
+        embedUrl: result.embedUrl,
+        downloadUrl: result.downloadUrl,
+        status: 'ENCODING',
+        remoteTrackingId: null,
+      },
     });
 
     const job = await this.prisma.uploadJob.create({
@@ -412,50 +391,6 @@ export class UploadService {
         episodeId,
         provider,
         language,
-        sourceType: UploadSourceType.LOCAL,
-        status: 'COMPLETED',
-        videoSourceId: videoSource.id,
-        initiatedById: userId,
-      },
-    });
-
-    return { uploadJob: job, videoSource };
-  }
-
-  async confirmUpload(dto: ConfirmUploadDto, userId: string) {
-    const episode = await this.prisma.episode.findUnique({
-      where: { id: dto.episodeId },
-    });
-    if (!episode) {
-      throw new NotFoundException(`Episode ${dto.episodeId} not found`);
-    }
-
-    await this.checkDuplicate(dto.episodeId, dto.provider, dto.language);
-
-    const adapter = this.registry.get(dto.provider);
-    if (!adapter.getUploadUrl) {
-      throw new BadRequestException(
-        `Provider ${dto.provider} does not support presign upload. Use POST /uploads/stream instead.`,
-      );
-    }
-
-    const videoSource = await this.prisma.videoSource.create({
-      data: {
-        episodeId: dto.episodeId,
-        provider: dto.provider,
-        language: dto.language,
-        providerFileId: dto.providerFileId,
-        embedUrl: dto.embedUrl,
-        downloadUrl: dto.downloadUrl,
-        status: 'ENCODING',
-      },
-    });
-
-    const job = await this.prisma.uploadJob.create({
-      data: {
-        episodeId: dto.episodeId,
-        provider: dto.provider,
-        language: dto.language,
         sourceType: UploadSourceType.LOCAL,
         status: 'COMPLETED',
         videoSourceId: videoSource.id,

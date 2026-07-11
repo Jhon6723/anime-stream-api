@@ -21,6 +21,7 @@ type MockedPrisma = {
   videoSource: {
     create: ReturnType<typeof vi.fn>;
     upsert: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -38,7 +39,7 @@ describe('UploadProcessor', () => {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
-      videoSource: { create: vi.fn(), upsert: vi.fn() },
+      videoSource: { create: vi.fn(), upsert: vi.fn(), update: vi.fn() },
     };
     registry = { get: vi.fn() };
     accountService = { resolveDecryptedApiKey: vi.fn() };

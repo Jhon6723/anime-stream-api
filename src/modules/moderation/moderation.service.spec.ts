@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import {
-  ModerationAction,
-  ModerationStatus,
-  VideoSourceStatus,
+    ModerationAction,
+    ModerationStatus,
+    VideoSourceStatus,
 } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -90,7 +90,11 @@ describe('ModerationService', () => {
           where: {
             moderationStatus: ModerationStatus.PENDING,
             videoSources: {
-              some: { status: { not: VideoSourceStatus.DELETED } },
+              some: {
+                status: {
+                  notIn: [VideoSourceStatus.DELETED, VideoSourceStatus.ERROR],
+                },
+              },
             },
           },
           skip: 0,

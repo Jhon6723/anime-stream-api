@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  ModerationAction,
-  ModerationStatus,
-  VideoSourceStatus,
+    ModerationAction,
+    ModerationStatus,
+    VideoSourceStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventsGateway } from '../../websocket/events.gateway';
@@ -21,7 +21,11 @@ export class ModerationService {
 
     const where = {
       moderationStatus: ModerationStatus.PENDING,
-      videoSources: { some: { status: { not: VideoSourceStatus.DELETED } } },
+      videoSources: {
+        some: {
+          status: { notIn: [VideoSourceStatus.DELETED, VideoSourceStatus.ERROR] },
+        },
+      },
     };
 
     const [items, total] = await this.prisma.$transaction([
@@ -31,13 +35,16 @@ export class ModerationService {
         include: {
           anime: { select: { title: true, slug: true } },
           videoSources: {
-            where: { status: { not: VideoSourceStatus.DELETED } },
+            where: {
+              status: { notIn: [VideoSourceStatus.DELETED, VideoSourceStatus.ERROR] },
+            },
             select: {
               id: true,
               provider: true,
               status: true,
               embedUrl: true,
               remoteTrackingId: true,
+              providerFileId: true,
             },
           },
         },
@@ -56,7 +63,9 @@ export class ModerationService {
       include: {
         anime: { select: { title: true, slug: true } },
         videoSources: {
-          where: { status: { not: VideoSourceStatus.DELETED } },
+          where: {
+            status: { notIn: [VideoSourceStatus.DELETED, VideoSourceStatus.ERROR] },
+          },
           select: { id: true, provider: true, status: true, embedUrl: true },
         },
       },

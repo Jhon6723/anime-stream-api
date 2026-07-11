@@ -1,12 +1,14 @@
 import { Provider, VideoSourceStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EventsGateway } from '../../websocket/events.gateway';
 import { ProviderAccountService } from '../providers/provider-account.service';
 import { ProviderRegistryService } from '../providers/provider-registry.service';
 import { VideoSourceSyncService } from './video-source-sync.service';
 
 type MockedPrisma = {
   videoSource: { update: ReturnType<typeof vi.fn> };
+  uploadJob: { updateMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
 };
 
 describe('VideoSourceSyncService', () => {
@@ -14,18 +16,22 @@ describe('VideoSourceSyncService', () => {
   let prisma: MockedPrisma;
   let registry: { get: ReturnType<typeof vi.fn> };
   let accountService: { resolveDecryptedApiKey: ReturnType<typeof vi.fn> };
+  let events: { emitUploadStatus: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = {
       videoSource: { update: vi.fn() },
+      uploadJob: { updateMany: vi.fn(), findMany: vi.fn() },
     };
     registry = { get: vi.fn() };
     accountService = { resolveDecryptedApiKey: vi.fn() };
+    events = { emitUploadStatus: vi.fn() };
     service = new VideoSourceSyncService(
       prisma as unknown as PrismaService,
       registry as unknown as ProviderRegistryService,
       accountService as unknown as ProviderAccountService,
+      events as unknown as EventsGateway,
     );
   });
 
@@ -79,6 +85,8 @@ describe('VideoSourceSyncService', () => {
       });
       accountService.resolveDecryptedApiKey.mockResolvedValue('api-key');
       prisma.videoSource.update.mockResolvedValue({});
+      prisma.uploadJob.updateMany.mockResolvedValue({ count: 1 });
+      prisma.uploadJob.findMany.mockResolvedValue([{ id: 'job-1' }]);
 
       await service.syncPendingSources(sources);
 
@@ -90,9 +98,14 @@ describe('VideoSourceSyncService', () => {
           status: 'READY',
         }),
       });
+      expect(prisma.uploadJob.updateMany).toHaveBeenCalledWith({
+        where: { videoSourceId: 'vs-1', status: 'PROCESSING' },
+        data: { status: 'COMPLETED' },
+      });
+      expect(events.emitUploadStatus).toHaveBeenCalledWith('job-1', 'COMPLETED');
     });
 
-    it('marks videoSource as ERROR when remote upload failed', async () => {
+    it('marks videoSource as DELETED when remote upload failed', async () => {
       const sources = [
         {
           id: 'vs-2',
@@ -107,13 +120,20 @@ describe('VideoSourceSyncService', () => {
       });
       accountService.resolveDecryptedApiKey.mockResolvedValue('api-key');
       prisma.videoSource.update.mockResolvedValue({});
+      prisma.uploadJob.updateMany.mockResolvedValue({ count: 1 });
+      prisma.uploadJob.findMany.mockResolvedValue([{ id: 'job-2' }]);
 
       await service.syncPendingSources(sources);
 
       expect(prisma.videoSource.update).toHaveBeenCalledWith({
         where: { id: 'vs-2' },
-        data: { status: 'ERROR' },
+        data: { status: 'DELETED' },
       });
+      expect(prisma.uploadJob.updateMany).toHaveBeenCalledWith({
+        where: { videoSourceId: 'vs-2', status: 'PROCESSING' },
+        data: { status: 'FAILED', errorMessage: 'Remote upload failed on provider side' },
+      });
+      expect(events.emitUploadStatus).toHaveBeenCalledWith('job-2', 'FAILED');
     });
 
     it('does not update when remote upload is still pending', async () => {

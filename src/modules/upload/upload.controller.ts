@@ -20,9 +20,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { BulkUploadDto } from './dto/bulk-upload.dto';
-import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateUploadDto } from './dto/create-upload.dto';
-import { PresignUploadDto } from './dto/presign-upload.dto';
 import { UploadService } from './upload.service';
 
 @ApiTags('upload')
@@ -37,11 +35,6 @@ export class UploadController {
   @HttpCode(202)
   createUpload(@Body() dto: CreateUploadDto, @CurrentUser() user: AuthUser) {
     return this.uploadService.createUpload(dto, user.id);
-  }
-
-  @Post('presign')
-  presignUpload(@Body() dto: PresignUploadDto, @CurrentUser() _user: AuthUser) {
-    return this.uploadService.presignUpload(dto);
   }
 
   @Post('stream')
@@ -65,12 +58,6 @@ export class UploadController {
       language,
       user.id,
     );
-  }
-
-  @Post('confirm')
-  @HttpCode(201)
-  confirmUpload(@Body() dto: ConfirmUploadDto, @CurrentUser() user: AuthUser) {
-    return this.uploadService.confirmUpload(dto, user.id);
   }
 
   @Post('bulk')

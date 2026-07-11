@@ -203,6 +203,7 @@ describe('AnimeService', () => {
         coverImage: 'https://example.com/cover.jpg',
         bannerImage: 'https://example.com/banner.jpg',
       });
+      prisma.episode.findMany.mockResolvedValue([]);
       prisma.episode.findFirst
         .mockResolvedValueOnce({
           ...mockEpisode,
@@ -214,6 +215,7 @@ describe('AnimeService', () => {
       const result = await service.findEpisode('naruto', 1);
 
       expect(result.anime.slug).toBe('naruto');
+      expect(result.episodes).toEqual([]);
       expect(result.episode.episodeNumber).toBe(1);
       expect(result.episode.videoSources).toHaveLength(2);
       expect(result.prevEpisode).toBeNull();

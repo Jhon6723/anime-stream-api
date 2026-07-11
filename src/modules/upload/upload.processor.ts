@@ -7,8 +7,8 @@ import { UPLOAD_QUEUE, UploadJobData } from '../../queue/queue.constants';
 import { EventsGateway } from '../../websocket/events.gateway';
 import { ProviderAccountService } from '../providers/provider-account.service';
 import {
-    ProviderRateLimitError,
-    ProviderUnavailableError,
+  ProviderRateLimitError,
+  ProviderUnavailableError,
 } from '../providers/provider-errors';
 import { ProviderRegistryService } from '../providers/provider-registry.service';
 import { UploadResult } from '../providers/video-provider.interface';
@@ -172,6 +172,17 @@ export class UploadProcessor extends WorkerHost {
         where: { id: uploadJobId },
         data: { status: 'FAILED', errorMessage },
       });
+
+      const failedJob = await this.prisma.uploadJob.findUnique({
+        where: { id: uploadJobId },
+        select: { videoSourceId: true },
+      });
+      if (failedJob?.videoSourceId) {
+        await this.prisma.videoSource.update({
+          where: { id: failedJob.videoSourceId },
+          data: { status: 'DELETED' },
+        });
+      }
 
       this.events.emitUploadStatus(uploadJobId, 'FAILED');
     }

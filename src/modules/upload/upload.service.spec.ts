@@ -18,6 +18,7 @@ type MockedPrisma = {
   videoSource: {
     findFirst: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    upsert: ReturnType<typeof vi.fn>;
   };
   uploadJob: {
     create: ReturnType<typeof vi.fn>;
@@ -38,7 +39,7 @@ describe('UploadService', () => {
     prisma = {
       episode: { findUnique: vi.fn() },
       anime: { findUnique: vi.fn() },
-      videoSource: { findFirst: vi.fn(), create: vi.fn() },
+      videoSource: { findFirst: vi.fn(), create: vi.fn(), upsert: vi.fn() },
       uploadJob: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
     };
     uploadQueue = { add: vi.fn() };
@@ -289,127 +290,6 @@ describe('UploadService', () => {
       expect(prisma.uploadJob.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { initiatedById: 'user-1' } }),
       );
-    });
-  });
-
-  describe('presignUpload', () => {
-    it('returns presign URL for supported provider', async () => {
-      prisma.episode.findUnique.mockResolvedValue({ id: 'ep-1' });
-      prisma.videoSource.findFirst.mockResolvedValue(null);
-      accountService.resolveDecryptedApiKey.mockResolvedValue('key-123');
-      registry.get.mockReturnValue({
-        getUploadUrl: vi.fn().mockResolvedValue({
-          uploadUrl: 'https://upload.doodapi.com/abc',
-          extraFields: { api_key: 'key-123' },
-        }),
-      });
-
-      const result = await service.presignUpload({
-        episodeId: 'ep-1',
-        provider: Provider.DOODSTREAM,
-        language: SubtitleLanguage.EN,
-      });
-
-      expect(result.uploadUrl).toBe('https://upload.doodapi.com/abc');
-      expect(result.extraFields).toEqual({ api_key: 'key-123' });
-    });
-
-    it('throws BadRequestException when provider does not support presign', async () => {
-      prisma.episode.findUnique.mockResolvedValue({ id: 'ep-1' });
-      prisma.videoSource.findFirst.mockResolvedValue(null);
-      registry.get.mockReturnValue({});
-
-      await expect(
-        service.presignUpload({
-          episodeId: 'ep-1',
-          provider: Provider.MIXDROP,
-          language: SubtitleLanguage.EN,
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('throws BadRequestException on duplicate', async () => {
-      prisma.episode.findUnique.mockResolvedValue({ id: 'ep-1' });
-      prisma.videoSource.findFirst.mockResolvedValue({ id: 'vs-1' });
-
-      await expect(
-        service.presignUpload({
-          episodeId: 'ep-1',
-          provider: Provider.DOODSTREAM,
-          language: SubtitleLanguage.EN,
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-  });
-
-  describe('confirmUpload', () => {
-    it('creates VideoSource and UploadJob on confirm', async () => {
-      prisma.episode.findUnique.mockResolvedValue({ id: 'ep-1' });
-      prisma.videoSource.findFirst.mockResolvedValue(null);
-      prisma.videoSource.create.mockResolvedValue({ id: 'vs-1' });
-      prisma.uploadJob.create.mockResolvedValue({ id: 'job-1' });
-      registry.get.mockReturnValue({ getUploadUrl: vi.fn() });
-
-      const result = await service.confirmUpload(
-        {
-          episodeId: 'ep-1',
-          provider: Provider.STREAMTAPE,
-          language: SubtitleLanguage.EN,
-          providerFileId: 'file-abc',
-          embedUrl: 'https://streamtape.com/e/file-abc',
-        },
-        'user-1',
-      );
-
-      expect(result.videoSource.id).toBe('vs-1');
-      expect(result.uploadJob.id).toBe('job-1');
-      expect(prisma.videoSource.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          episodeId: 'ep-1',
-          provider: Provider.STREAMTAPE,
-          language: SubtitleLanguage.EN,
-          providerFileId: 'file-abc',
-          status: 'ENCODING',
-        }),
-      });
-    });
-
-    it('throws BadRequestException on duplicate', async () => {
-      prisma.episode.findUnique.mockResolvedValue({ id: 'ep-1' });
-      prisma.videoSource.findFirst.mockResolvedValue({ id: 'vs-1' });
-      registry.get.mockReturnValue({ getUploadUrl: vi.fn() });
-
-      await expect(
-        service.confirmUpload(
-          {
-            episodeId: 'ep-1',
-            provider: Provider.STREAMTAPE,
-            language: SubtitleLanguage.EN,
-            providerFileId: 'file-abc',
-            embedUrl: 'https://streamtape.com/e/file-abc',
-          },
-          'user-1',
-        ),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('throws BadRequestException for provider without presign support', async () => {
-      prisma.episode.findUnique.mockResolvedValue({ id: 'ep-1' });
-      prisma.videoSource.findFirst.mockResolvedValue(null);
-      registry.get.mockReturnValue({ getUploadUrl: undefined });
-
-      await expect(
-        service.confirmUpload(
-          {
-            episodeId: 'ep-1',
-            provider: Provider.DOODSTREAM,
-            language: SubtitleLanguage.EN,
-            providerFileId: 'file-abc',
-            embedUrl: 'https://dood.to/e/file-abc',
-          },
-          'user-1',
-        ),
-      ).rejects.toThrow(BadRequestException);
     });
   });
 });

@@ -139,6 +139,7 @@ export class AnimeService {
               language: true,
               status: true,
               remoteTrackingId: true,
+              providerFileId: true,
             },
           },
         },
@@ -202,6 +203,47 @@ export class AnimeService {
       throw new NotFoundException('Anime not found');
     }
 
+    const episodes = await this.prisma.episode.findMany({
+      where: {
+        animeId: anime.id,
+        isEnabled: true,
+        moderationStatus: ModerationStatus.APPROVED,
+      },
+      orderBy: { episodeNumber: 'asc' },
+      select: {
+        id: true,
+        episodeNumber: true,
+        title: true,
+        description: true,
+        thumbnailUrl: true,
+        duration: true,
+        isFiller: true,
+        airedDate: true,
+      },
+    });
+
+    // Sync pending video sources for this anime before fetching the episode
+    const pendingSources = await this.prisma.videoSource.findMany({
+      where: {
+        episode: { animeId: anime.id },
+        status: { in: ['UPLOADING', 'ENCODING'] },
+        OR: [
+          { remoteTrackingId: { not: null } },
+          { providerFileId: { not: null } },
+        ],
+      },
+      select: {
+        id: true,
+        provider: true,
+        status: true,
+        remoteTrackingId: true,
+        providerFileId: true,
+      },
+    });
+    if (pendingSources.length > 0) {
+      await this.syncService.syncPendingSources(pendingSources);
+    }
+
     const episode = await this.prisma.episode.findFirst({
       where: {
         animeId: anime.id,
@@ -213,7 +255,8 @@ export class AnimeService {
         videoSources: {
           where: {
             isActive: true,
-            status: VideoSourceStatus.READY,
+            status: { in: [VideoSourceStatus.READY, VideoSourceStatus.ENCODING] },
+            embedUrl: { not: null },
           },
           select: {
             id: true,
@@ -252,6 +295,7 @@ export class AnimeService {
 
     return {
       anime,
+      episodes,
       episode: {
         id: episode.id,
         episodeNumber: episode.episodeNumber,
