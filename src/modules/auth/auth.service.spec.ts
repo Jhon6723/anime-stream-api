@@ -174,7 +174,26 @@ describe('AuthService', () => {
       );
     });
 
-    it('throws UnauthorizedException for invalid token', async () => {
+    it('throws ForbiddenException for inactive user', async () => {
+      jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', jti: 'jti-1' });
+      prisma.user.findUnique.mockResolvedValue({ ...mockUser, status: 'SUSPENDED' });
+
+      await expect(service.refresh('valid-refresh-token')).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('throws UnauthorizedException for expired token', async () => {
+      const expiredError = new Error('Token expired') as Error & { name: string };
+      expiredError.name = 'TokenExpiredError';
+      jwt.verifyAsync.mockRejectedValue(expiredError);
+
+      await expect(service.refresh('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('throws UnauthorizedException for invalid token signature', async () => {
       jwt.verifyAsync.mockRejectedValue(new Error('invalid'));
 
       await expect(service.refresh('invalid-token')).rejects.toThrow(

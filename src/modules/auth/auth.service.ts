@@ -53,31 +53,42 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<AuthResponse> {
+    let payload: { sub: string; jti: string } | undefined;
     try {
-      const payload = await this.jwt.verifyAsync<{
+      payload = await this.jwt.verifyAsync<{
         sub: string;
         jti: string;
       }>(refreshToken, {
         secret: this.config.get<string>('jwt.refreshSecret'),
       });
-
-      const isBlacklisted = await this.redis.isTokenBlacklisted(payload.jti);
-      if (isBlacklisted) {
-        throw new UnauthorizedException('Invalid refresh token');
+    } catch (err) {
+      if (err instanceof Error && err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Refresh token expired');
       }
+      throw new UnauthorizedException('Invalid refresh token signature');
+    }
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-      });
-      if (!user || user.status !== UserStatus.ACTIVE) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      await this.redis.blacklistToken(payload.jti, this.getRefreshTtlSeconds());
-      return this.issueTokens(user);
-    } catch {
+    if (!payload) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+
+    const isBlacklisted = await this.redis.isTokenBlacklisted(payload.jti);
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Refresh token revoked');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('Account is not active');
+    }
+
+    await this.redis.blacklistToken(payload.jti, this.getRefreshTtlSeconds());
+    return this.issueTokens(user);
   }
 
   async logout(refreshToken: string): Promise<void> {
