@@ -6,19 +6,19 @@ import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-  ProviderAuthError,
-  ProviderNotFoundError,
-  ProviderRateLimitError,
-  ProviderUnavailableError,
-  getHttpErrorInfo,
+    ProviderAuthError,
+    ProviderNotFoundError,
+    ProviderRateLimitError,
+    ProviderUnavailableError,
+    getHttpErrorInfo,
 } from '../provider-errors';
 import {
-  PresignResult,
-  ProviderFileInfo,
-  RemoteUploadResult,
-  RemoteUploadStatus,
-  UploadResult,
-  VideoProvider,
+    PresignResult,
+    ProviderFileInfo,
+    RemoteUploadResult,
+    RemoteUploadStatus,
+    UploadResult,
+    VideoProvider,
 } from '../video-provider.interface';
 
 interface DoodUploadServerResponse {
@@ -199,6 +199,9 @@ export class DoodstreamAdapter implements VideoProvider {
       );
 
       if (uploadRes.data.status !== 200 || !uploadRes.data.result?.[0]) {
+        this.logger.warn(
+          `DOODSTREAM stream upload failed: status=${uploadRes.data.status}, result=${JSON.stringify(uploadRes.data.result)}`,
+        );
         throw new ProviderUnavailableError('DOODSTREAM', 'Upload failed');
       }
 

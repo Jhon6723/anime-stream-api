@@ -6,18 +6,18 @@ import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-    ProviderAuthError,
-    ProviderNotFoundError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
-    getHttpErrorInfo,
+  ProviderAuthError,
+  ProviderNotFoundError,
+  ProviderRateLimitError,
+  ProviderUnavailableError,
+  getHttpErrorInfo,
 } from '../provider-errors';
 import {
-    ProviderFileInfo,
-    RemoteUploadResult,
-    RemoteUploadStatus,
-    UploadResult,
-    VideoProvider,
+  ProviderFileInfo,
+  RemoteUploadResult,
+  RemoteUploadStatus,
+  UploadResult,
+  VideoProvider,
 } from '../video-provider.interface';
 
 interface MixdropUploadResponse {

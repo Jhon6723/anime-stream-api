@@ -6,19 +6,19 @@ import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { firstValueFrom } from 'rxjs';
 import {
-    ProviderAuthError,
-    ProviderNotFoundError,
-    ProviderRateLimitError,
-    ProviderUnavailableError,
-    getHttpErrorInfo,
+  ProviderAuthError,
+  ProviderNotFoundError,
+  ProviderRateLimitError,
+  ProviderUnavailableError,
+  getHttpErrorInfo,
 } from '../provider-errors';
 import {
-    PresignResult,
-    ProviderFileInfo,
-    RemoteUploadResult,
-    RemoteUploadStatus,
-    UploadResult,
-    VideoProvider,
+  PresignResult,
+  ProviderFileInfo,
+  RemoteUploadResult,
+  RemoteUploadStatus,
+  UploadResult,
+  VideoProvider,
 } from '../video-provider.interface';
 
 interface StreamtapeUploadUrlResponse {
