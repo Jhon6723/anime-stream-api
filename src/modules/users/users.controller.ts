@@ -16,6 +16,8 @@ import {
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
+import { UpdateUserEmailDto } from './dto/update-user-email.dto';
+import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UsersService } from './users.service';
@@ -66,5 +68,25 @@ export class UsersController {
     @CurrentUser() admin: AuthUser,
   ) {
     return this.usersService.updateStatus(id, dto, admin.id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/email')
+  updateEmail(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserEmailDto,
+    @CurrentUser() admin: AuthUser,
+  ) {
+    return this.usersService.updateEmail(id, dto, admin.id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/password')
+  updatePassword(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserPasswordDto,
+    @CurrentUser() admin: AuthUser,
+  ) {
+    return this.usersService.updatePassword(id, dto, admin.id);
   }
 }

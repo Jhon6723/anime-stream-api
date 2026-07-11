@@ -8,6 +8,8 @@ import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
+import { UpdateUserEmailDto } from './dto/update-user-email.dto';
+import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
@@ -84,6 +86,55 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: { status: dto.status },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+      },
+    });
+  }
+
+  async updateEmail(id: string, dto: UpdateUserEmailDto, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (id === adminId) {
+      throw new BadRequestException('Cannot change your own email here');
+    }
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase() },
+    });
+    if (existing && existing.id !== id) {
+      throw new ConflictException('Email already in use');
+    }
+    return this.prisma.user.update({
+      where: { id },
+      data: { email: dto.email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+      },
+    });
+  }
+
+  async updatePassword(id: string, dto: UpdateUserPasswordDto, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (id === adminId) {
+      throw new BadRequestException('Cannot change your own password here');
+    }
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    return this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
       select: {
         id: true,
         email: true,
